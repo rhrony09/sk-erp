@@ -31,10 +31,25 @@ class PosController extends Controller {
     public function index($id = 0) {
         session()->forget('pos');
 
+        $role = DB::table('model_has_roles')
+            ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+            ->where('model_has_roles.model_id', \Auth::user()->id)
+            ->where('model_has_roles.model_type', \App\Models\User::class)
+            ->select('roles.name', 'roles.id as role_id')
+            ->first();
+
+        $branchId = \Auth::user()->employee->branch_id ?? null;
+       
+
         if (Auth::user()->can('manage pos')) {
-            $customers = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'name');
+            $customers = Customer::get()->pluck('name', 'id');
             $customers->prepend('Walk-in-customer', '');
-            $warehouses = warehouse::select('*', \DB::raw("CONCAT(name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+
+            if ($branchId && $role->role_id != 10) {
+                $warehouses = warehouse::select('*', \DB::raw("CONCAT(name) AS name"))->where('branch_id', $branchId)->get()->pluck('name', 'id');
+            } else {
+                $warehouses = warehouse::select('*', \DB::raw("CONCAT(name) AS name"))->get()->pluck('name', 'id');
+            }
             //    $warehouses->prepend('Select Warehouse', '');
             $user = Auth::user();
             $details = [
@@ -86,8 +101,8 @@ class PosController extends Controller {
             $settings = Utility::settings();
 
 
-            $customer = Customer::where('name', '=', $request->vc_name)->where('created_by', $user->creatorId())->first();
-            $warehouse = warehouse::where('id', '=', $request->warehouse_name)->where('created_by', $user->creatorId())->first();
+            $customer = Customer::where('name', '=', $request->vc_name)->first();
+            $warehouse = warehouse::where('id', '=', $request->warehouse_name)->first();
 
             $details = [
                 'pos_id' => $user->posNumberFormat($this->invoicePosNumber()),
@@ -185,7 +200,7 @@ class PosController extends Controller {
             }
 
             $user_id = Auth::user()->creatorId();
-            $customer_id      = Customer::customer_id($request->vc_name);
+            $customer_id = $request->vc_name ?? 0;
             $warehouse_id      = warehouse::warehouse_id($request->warehouse_name);
             $pos_id       = $this->invoicePosNumber();
             $sales            = session()->get('pos');
@@ -347,11 +362,11 @@ class PosController extends Controller {
 
         if (\Auth::user()->can('manage pos')) {
             if ($branchId && $role->role_id != 10) {
-                $posPayments = Pos::with(['customer', 'warehouse'])->whereHas('warehouse', function($query) use ($branchId) {
+                $posPayments = Pos::with(['customer', 'warehouse', 'createdBy'])->whereHas('warehouse', function($query) use ($branchId) {
                     $query->where('branch_id', $branchId);
                 })->get();
             }else{
-                $posPayments = Pos::with(['customer', 'warehouse'])->get();
+                $posPayments = Pos::with(['customer', 'warehouse', 'createdBy'])->get();
             }
             
             return view('pos.report', compact('posPayments'));

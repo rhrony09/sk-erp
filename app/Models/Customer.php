@@ -275,7 +275,6 @@ class Customer extends Authenticatable
     {
         $customer = DB::table('customers')
         ->where('name', $customer_name)
-        ->where('created_by', Auth::user()->creatorId())
         ->select('id')
         ->first();
 

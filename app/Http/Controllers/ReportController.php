@@ -4405,7 +4405,6 @@ class ReportController extends Controller
         $invoiceItems = InvoiceProduct::select('product_services.name', \DB::raw('sum(invoice_products.quantity) as quantity'), \DB::raw('sum(invoice_products.price * invoice_products.quantity) as price'), \DB::raw('sum(invoice_products.price)/sum(invoice_products.quantity) as avg_price'));
         $invoiceItems->leftjoin('product_services', 'product_services.id', 'invoice_products.product_id');
         $invoiceItems->leftjoin('invoices', 'invoices.id', 'invoice_products.invoice_id');
-        $invoiceItems->where('product_services.created_by', \Auth::user()->creatorId());
         $invoiceItems->where('invoices.issue_date', '>=', $start);
         $invoiceItems->where('invoices.issue_date', '<=', $end);
         $invoiceItems->groupBy('invoice_products.product_id');
@@ -4418,7 +4417,6 @@ class ReportController extends Controller
              WHERE invoice_products.invoice_id = invoices.id) as total_tax')
             ->leftJoin('customers', 'customers.id', 'invoices.customer_id')
             ->leftJoin('invoice_products', 'invoice_products.invoice_id', 'invoices.id')
-            ->where('invoices.created_by', \Auth::user()->creatorId())
             ->where('invoices.issue_date', '>=', $start)
             ->where('invoices.issue_date', '<=', $end)
             ->groupBy('invoices.invoice_id')

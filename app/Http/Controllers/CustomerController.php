@@ -33,12 +33,13 @@ class CustomerController extends Controller
         if (\Auth::user()->can('manage customer')) {
             $search = $request->input('search');
 
-            $customers = Customer::where('created_by', '=', \Auth::user()->creatorId())
-                ->when($search, function ($query, $search) {
+            $customers = Customer::when($search, function ($query, $search) {
                     return $query->where(function ($query) use ($search) {
                         $query->where('name', 'LIKE', "%{$search}%")
                             ->orWhere('email', 'LIKE', "%{$search}%")
-                            ->orWhere('contact', 'LIKE', "%{$search}%");
+                            ->orWhere('contact', 'LIKE', "%{$search}%")
+                            ->orWhere('billing_phone', 'LIKE', "%{$search}%")
+                            ->orWhere('shipping_phone', 'LIKE', "%{$search}%");
                     });
                 })
                 ->paginate(25);
@@ -67,8 +68,8 @@ class CustomerController extends Controller
 
             $rules = [
                 'name' => 'required',
-                'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/',
-                'email' => 'required|email|unique:customers',
+                'email' => 'required|email|unique:customers,email,',
+                'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|unique:customers,contact',
                 'password' => 'required|min:6',
             ];
 

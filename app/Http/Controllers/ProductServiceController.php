@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
+use Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 
@@ -629,8 +630,7 @@ class ProductServiceController extends Controller
                     $products = ProductService::getallproducts()->whereIn('product_services.id', $ids)->where('category_id', $request->cat_id)->with(['unit'])->get();
                 }
             }
-
-
+            
             if (count($products) > 0) {
                 foreach ($products as $key => $product) {
                     $quantity = $product->warehouseProduct($product->id, $request->war_id != 0 ? $request->war_id : 1);
@@ -681,12 +681,14 @@ class ProductServiceController extends Controller
 
     public function addToCart(Request $request, $id, $session_key)
     {
-        $war_id = $request->query('war_id');
+        $war_id = $request->get('war_id');
+        Log::info($war_id);
 
         if (Auth::user()->can('manage product & service') && $request->ajax()) {
             $product = ProductService::find($id);
             $warehouseProduct = WarehouseProduct::where('warehouse_id', $war_id)->where('product_id', $id)->first();
 
+            Log::info( $war_id);
             $productquantity = $warehouseProduct->quantity;
 
             // if ($product) {

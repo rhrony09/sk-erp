@@ -126,11 +126,12 @@
                     <div class="card m-0">
                         <div class="card-header p-2">
                             <div class="row">
-                                <div class="col-md-6">
-                                    {{ Form::select('customer_id', $customers,$customer, array('class' => 'form-control select2 customer_select','id'=>'customer','required'=>'required')) }}
-                                    {{ Form::hidden('vc_name_hidden', '',['id' => 'vc_name_hidden']) }}
 
+                                <div class="col-md-6">
+                                    {{ Form::select('customer_id', $customers, '', array('class' => 'form-control select2 customer_select', 'id'=>'customer', 'required'=>'required', 'name'=>'vc_name')) }}
+                                    {{ Form::hidden('vc_name_hidden', '', ['id' => 'vc_name_hidden']) }}
                                 </div>
+
                                 <div class="col-md-6">
                                     {{ Form::select('warehouse_id', $warehouses,$warehouseId, array('class' => 'form-control select warehouse_select ','id'=>'warehouse','required'=>'required')) }}
                                     {{ Form::hidden('warehouse_name_hidden', '',['id' => 'warehouse_name_hidden']) }}
@@ -221,17 +222,31 @@
                                         <h6 class="mb-0 text-dark subtotal_price" id="displaytotal">{{ Auth::user()->priceFormat($total) }}</h6>
                                     </div>
                                     <div class="row align-items-center">
-                                        <div class="col-6">
-                                            <div class="d-flex text-end justify-content-end align-items-center">
-                                                <span class="input-group-text bg-transparent">{{\Auth::user()->currencySymbol()}}</span>
-                                                {{ Form::number('discount',$discount, array('class' => ' form-control discount','required'=>'required','placeholder'=>__('Discount'))) }}
-                                                {{ Form::hidden('discount_hidden', $discount ,['id' => 'discount_hidden']) }}
+                                        <div class="col-8">
+                                            <div class="row">
+                                                <div class="col-5">
+                                                    <div>
+                                                        {{ Form::label('paid', $discount ,['id' => 'paid_hidden']) }}
+                                                        {{ Form::number('paid',$discount, array('class' => ' form-control paid','required'=>'required','placeholder'=>__('Paid'))) }}
+                                                    </div>
+                                                </div>
+                                                <div class="col-5">
+                                                    <div>
+                                                        {{ Form::label('discount', $discount ,['id' => 'discount_hidden']) }}
+                                                        {{ Form::number('discount',$discount, array('class' => ' form-control discount','required'=>'required','placeholder'=>__('Discount'))) }}
+                                                        
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="col-2 d-flex align-items-end">
+                                                    <span class="input-group-text bg-transparent">{{\Auth::user()->currencySymbol()}}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="col-6">
+                                        <div class="col-4">
                                             <div class="d-flex align-items-center justify-content-end">
-                                                <h6 class="">{{__('Total')}} :</h6>
-                                                <h6 class="totalamount" >{{ Auth::user()->priceFormat($netPrice) }}</h6>
+                                                <h6 class="text-black">{{__('Total')}} :</h6>
+                                                <h6 class="totalamount text-black" >{{ Auth::user()->priceFormat($netPrice) }}</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -259,7 +274,6 @@
             </div>
         </div>
 </div>
-
 
 <div class="modal fade" id="commonModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -361,6 +375,8 @@
         });
         $( '.customer_select' ).change(function() {
             $( "#vc_name_hidden" ).val($(this).val());
+            console.log($(this).val());
+            
         });
         $( '.warehouse_select' ).change(function() {
             $( "#warehouse_name_hidden" ).val($(this).val());

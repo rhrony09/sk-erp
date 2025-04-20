@@ -26,6 +26,12 @@ class Pos extends Model
 
         return $this->hasOne('App\Models\Customer', 'id', 'customer_id');
     }
+
+    public function createdBy()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
+    }
+
     public function warehouse()
     {
         return $this->hasOne('App\Models\warehouse', 'id', 'warehouse_id');

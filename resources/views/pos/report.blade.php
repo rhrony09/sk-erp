@@ -23,10 +23,12 @@
                                     <th>{{__('POS ID')}}</th>
                                     <th>{{ __('Date') }}</th>
                                     <th>{{ __('Customer') }}</th>
+                                    <th>{{ __('Phone') }}</th>
                                     <th>{{ __('Warehouse') }}</th>
                                     <th>{{ __('Sub Total') }}</th>
                                     <th>{{ __('Discount') }}</th>
                                     <th>{{ __('Total') }}</th>
+                                    <th>Sold By</th>
                                 </tr>
                                 </thead>
 
@@ -42,15 +44,20 @@
                                             </a>
                                         </td>
                                         <td>{{ Auth::user()->dateFormat($posPayment->created_at)}}</td>
-                                        @if($posPayment->customer_id == 0)
-                                            <td class="">{{__('Walk-in Customer')}}</td>
-                                        @else
-                                            <td>{{ !empty($posPayment->customer) ? $posPayment->customer->name : '' }} </td>
-                                        @endif
+                                        <td class="">
+                                            @if($posPayment->customer_id == 0)
+                                                {{__('Walk-in Customer')}}
+                                            @else
+                                                {{ !empty($posPayment->customer) ? $posPayment->customer->name : '' }} <br/>
+                                                
+                                            @endif
+                                        </td>
+                                        <td>{{ !empty($posPayment->customer) ? $posPayment->customer->contact : '' }}</td>
                                         <td>{{ !empty($posPayment->warehouse) ? $posPayment->warehouse->name : '' }} </td>
                                         <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat ($posPayment->posPayment->amount) :0}}</td>
                                         <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat($posPayment->posPayment->discount) :0}}</td>
                                         <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat($posPayment->posPayment->discount_amount) :0}}</td>
+                                        <td>{{ !empty($posPayment->createdBy) ? $posPayment->createdBy->name : '' }}</td>
                                     </tr>
                                 @empty
                                     <tr>

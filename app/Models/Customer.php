@@ -286,4 +286,9 @@ class Customer extends Authenticatable
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function poses()
+    {
+        return $this->hasMany('App\Models\Pos', 'customer_id');
+    }
+
 }

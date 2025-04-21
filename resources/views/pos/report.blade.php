@@ -25,9 +25,12 @@
                                     <th>{{ __('Customer') }}</th>
                                     <th>{{ __('Phone') }}</th>
                                     <th>{{ __('Warehouse') }}</th>
+                                    <th>{{ __('Status') }}</th>
                                     <th>{{ __('Sub Total') }}</th>
                                     <th>{{ __('Discount') }}</th>
                                     <th>{{ __('Total') }}</th>
+                                    <th>Paid</th>
+                                    <th>Due</th>
                                     <th>Sold By</th>
                                 </tr>
                                 </thead>
@@ -54,9 +57,12 @@
                                         </td>
                                         <td>{{ !empty($posPayment->customer) ? $posPayment->customer->contact : '' }}</td>
                                         <td>{{ !empty($posPayment->warehouse) ? $posPayment->warehouse->name : '' }} </td>
+                                        <td class="text-capitalize">{{$posPayment->delivery_status}}</td>
                                         <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat ($posPayment->posPayment->amount) :0}}</td>
                                         <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat($posPayment->posPayment->discount) :0}}</td>
                                         <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat($posPayment->posPayment->discount_amount) :0}}</td>
+                                        <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat($posPayment->posPayment->paid) :0}}</td>
+                                        <td>{{!empty($posPayment->posPayment)? \Auth::user()->priceFormat($posPayment->posPayment->due) :0}}</td>
                                         <td>{{ !empty($posPayment->createdBy) ? $posPayment->createdBy->name : '' }}</td>
                                     </tr>
                                 @empty

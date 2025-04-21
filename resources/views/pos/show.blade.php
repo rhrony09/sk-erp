@@ -100,13 +100,29 @@
                             <td></td>
                             <td class="text-right">{{ $sales['discount'] }}</td>
                         </tr>
-                        <tr class="pos-header">
+                        <tr>
                             <td class="">{{ __('Total') }}</td>
                             <td></td>
                             <td></td>
                             <td></td>
                             <td></td>
                             <td class="text-right">{{ $sales['total'] }}</td>
+                        </tr>
+                        <tr>
+                            <td class="">{{ __('Paid') }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-right">{{ $sales['paid'] }}</td>
+                        </tr>
+                        <tr>
+                            <td class="">{{ __('Due') }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="text-right">{{ $sales['due'] }}</td>
                         </tr>
                         </tfoot>
                     </table>
@@ -158,6 +174,7 @@
                 vc_name: $('#vc_name_hidden').val(),
                 warehouse_name: $('#warehouse_name_hidden').val(),
                 discount : $('#discount_hidden').val(),
+                paid: $('#paid').val(),
             },
             beforeSend: function () {
                 ele.remove();

@@ -22,6 +22,7 @@ class CreatePosTable extends Migration
             $table->integer('category_id')->default('0');
             $table->integer('status')->default('0');
             $table->integer('shipping_display')->default('1');
+            $table->enum('delivery_status', ['pending', 'shipping','delivered','cancelled'])->default('pending');
             $table->integer('created_by')->default('0');
             $table->timestamps();
         });

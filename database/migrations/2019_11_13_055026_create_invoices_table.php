@@ -29,6 +29,7 @@ class CreateInvoicesTable extends Migration
             $table->text('note')->nullable();
             $table->integer('created_by')->default('0');
             $table->unsignedBigInteger('salesman_id');
+            $table->bigInteger('pos_id')->nullable();
             $table->timestamps();
         }
         );

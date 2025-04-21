@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\SelledInvoice;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Pos;
 use App\Models\PosPayment;
 use App\Models\PosProduct;
@@ -92,7 +93,6 @@ class PosController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function create(Request $request) {
-
         $sess = session()->get('pos');
 
         if (Auth::user()->can('manage pos') && isset($sess) && !empty($sess) && count($sess) > 0) {
@@ -165,11 +165,14 @@ class PosController extends Controller {
             }
 
             $discount = !empty($request->discount) ? $request->discount : 0;
+            $paid = !empty($request->paid) ? $request->paid : 0;
             $sales['discount'] = Auth::user()->priceFormat($discount);
+            $sales['paid'] = Auth::user()->priceFormat($paid);
             $total = $mainsubtotal - $discount;
+            $due = $total - $paid;
             $sales['sub_total'] = Auth::user()->priceFormat($mainsubtotal);
             $sales['total'] = Auth::user()->priceFormat($total);
-
+            $sales['due'] = Auth::user()->priceFormat($due);
 
             return view('pos.show', compact('sales', 'details'));
         } else {
@@ -288,6 +291,8 @@ class PosController extends Controller {
                     $total = $mainsubtotal - $discount;
                     $posPayment->discount         = $discount;
                     $posPayment->discount_amount       = $total;
+                    $posPayment->paid       = $request->paid;
+                    $posPayment->due        = $total - $request->paid;
                     $posPayment->save();
 
                     session()->forget('pos');
@@ -324,19 +329,51 @@ class PosController extends Controller {
 
             $pos = Pos::find($id);
 
-            if ($pos->created_by == \Auth::user()->creatorId()) {
-                $posPayment = PosPayment::where('pos_id', $pos->id)->first();
+            $posPayment = PosPayment::where('pos_id', $pos->id)->first();
 
                 $customer             = $pos->customer;
                 $iteams               = $pos->items;
 
                 return view('pos.view', compact('pos', 'customer', 'iteams', 'posPayment'));
-            } else {
-                return redirect()->back()->with('error', __('Permission denied.'));
-            }
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+    }
+
+    public function updateDeliveryStatus(Request $request, $id)
+    {
+        $pos = Pos::find($id);
+
+        $pos->delivery_status = $request->delivery_status;
+        $pos->save();
+        
+        if($request->delivery_status == 'delivered'){
+            $existsInvoice = Invoice::where('pos_id', $pos->id)->first();
+
+            if(!$existsInvoice){
+                $invoice = new Invoice();
+                $invoice->invoice_id = $this->invoiceNumber();
+                $invoice->customer_id    = $pos->customer_id;
+                $invoice->issue_date     = $pos->created_at;
+                $invoice->due_date       = $pos->created_at;
+                $invoice->category_id    = 47;
+                $invoice->created_by     = \Auth::user()->creatorId();
+                $invoice->salesman_id    = $pos->created_by;
+                $invoice->save();
+            }
+        }
+
+        return redirect()->back()->with('success', __('Delivery status updated successfully.'));
+    }
+
+    function invoiceNumber()
+    {
+        $latest = Invoice::latest()->first();
+        if (!$latest) {
+            return 1;
+        }
+
+        return $latest->invoice_id + 1;
     }
 
     function invoicePosNumber() {

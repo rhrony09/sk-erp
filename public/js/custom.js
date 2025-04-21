@@ -122,6 +122,11 @@ $(document).on('click', 'a[data-ajax-popup="true"], button[data-ajax-popup="true
     if ($('#discount_hidden').length > 0) {
         data['discount'] = $('#discount_hidden').val();
     }
+    if ($('#paid').length > 0) {
+        data['paid'] = $('#paid').val();
+        console.log(data['paid']);
+        
+    }
     $.ajax({
         url: url,
         data: data,

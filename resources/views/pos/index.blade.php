@@ -226,13 +226,15 @@
                                             <div class="row">
                                                 <div class="col-5">
                                                     <div>
-                                                        {{ Form::label('paid', $discount ,['id' => 'paid_hidden']) }}
+                                                        {{ Form::hidden('paid', $discount ,['id' => 'paid_hidden']) }}
+                                                        {{ Form::label('paid') }}
                                                         {{ Form::number('paid',$discount, array('class' => ' form-control paid','required'=>'required','placeholder'=>__('Paid'))) }}
                                                     </div>
                                                 </div>
                                                 <div class="col-5">
                                                     <div>
-                                                        {{ Form::label('discount', $discount ,['id' => 'discount_hidden']) }}
+                                                        {{ Form::hidden('discount', $discount ,['id' => 'discount_hidden']) }}
+                                                        {{ Form::label('discount') }}
                                                         {{ Form::number('discount',$discount, array('class' => ' form-control discount','required'=>'required','placeholder'=>__('Discount'))) }}
                                                         
                                                     </div>
@@ -347,10 +349,9 @@
 
         $( "#vc_name_hidden" ).val($('.customer_select').val());
         $( "#warehouse_name_hidden" ).val($('.warehouse_select').val());
+        $( "#paid_hidden").val($('.paid').val());
         $( "#discount_hidden").val($('.discount').val());
         $( "#quotation_id").val($('.quotation').val());
-
-
 
         $(function () {
             getProductCategories();
@@ -494,7 +495,6 @@
             var quantity = ele.closest('span').find('input[name="quantity"]').val();
             var discount = $('.discount').val();
 
-
             // console.log(quantity)
             if(quantity != null && quantity != 0)
             {
@@ -604,7 +604,7 @@
         $(document).on('click', '.btn-done-payment', function (e) {
             e.preventDefault();
             var ele = $(this);
-
+            
             $.ajax({
                 url: ele.data('url'),
 
@@ -650,6 +650,10 @@
             var url = '{{ route('search.products') }}'
             var warehouse_id=$('#warehouse').val();
             searchProducts(url,'',cat,warehouse_id);
+        });
+
+        $(document).on('keyup', '.paid', function () {
+            var discount = $('.paid').val();
         });
 
         $(document).on('keyup', '.discount', function () {

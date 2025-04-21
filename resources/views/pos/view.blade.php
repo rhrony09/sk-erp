@@ -31,7 +31,18 @@
 @endsection
 
 @section('action-btn')
-    <div class="float-end">
+    <div class="float-end d-flex">
+
+        <form id="delivery_status" action="{{ route('pos.delivery_status', $pos->id) }}" class="me-2" method="post">
+            @csrf
+            <select onchange="document.getElementById('delivery_status').submit();" name="delivery_status" class="form-select" id="">
+                <option value="pending" @if($pos->delivery_status == 'pending') selected @endif>Pending</option>
+                <option value="shipping" @if($pos->delivery_status == 'shipping') selected @endif>Shipping</option>
+                <option value="delivered" @if($pos->delivery_status == 'delivered') selected @endif>Delivered</option>
+                <option value="cancelled" @if($pos->delivery_status == 'cancelled') selected @endif>Cancelled</option>
+            </select>
+        </form>
+
         <a href="{{ route('pos.pdf', Crypt::encrypt($pos->id))}}" class="btn btn-primary" target="_blank">{{__('Download')}}</a>
     </div>
 @endsection
@@ -60,7 +71,7 @@
                                     {{!empty($customer->billing_name)?$customer->billing_name:''}}<br>
                                     {{!empty($customer->billing_address)?$customer->billing_address:''}}<br>
                                     {{!empty($customer->billing_city)?$customer->billing_city:'' .', '}}<br>
-                                    {{!empty($customer->billing_state)?$customer->billing_state:'',', '}},
+                                    {{!empty($customer->billing_state)?$customer->billing_state:''.', '}},
                                     {{!empty($customer->billing_zip)?$customer->billing_zip:''}}<br>
                                     {{!empty($customer->billing_country)?$customer->billing_country:''}}<br>
                                     {{!empty($customer->billing_phone)?$customer->billing_phone:''}}<br>
@@ -199,6 +210,24 @@
                                         <td></td>
                                         <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['discount_amount'])}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>{{__('Paid')}}</b></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>{{\Auth::user()->priceFormat($posPayment['paid'])}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>{{__('Due')}}</b></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td>{{\Auth::user()->priceFormat($posPayment['due'])}}</td>
                                     </tr>
                                 </table>
                             </div>

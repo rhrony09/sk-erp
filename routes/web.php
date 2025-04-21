@@ -1518,6 +1518,7 @@ Route::any('pos-receipt', [PosController::class, 'receipt'])->name('pos.receipt'
 Route::post('/cartdiscount', [PosController::class, 'cartdiscount'])->name('cartdiscount')->middleware(['auth', 'XSS']);
 
 Route::resource('pos', PosController::class)->middleware(['auth', 'XSS', 'revalidate']);
+Route::post('pos-delivey-update/{id}', [PosController::class, 'updateDeliveryStatus'])->name('pos.delivery_status')->middleware(['auth', 'XSS', 'revalidate']);
 Route::any('report/pos', [PosController::class, 'report'])->name('pos.report')->middleware(['auth', 'XSS']);
 Route::get('{cid?}/pos', [PosController::class, 'index'])->name('poses.index');
 

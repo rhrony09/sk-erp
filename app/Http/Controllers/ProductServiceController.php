@@ -682,13 +682,12 @@ class ProductServiceController extends Controller
     public function addToCart(Request $request, $id, $session_key)
     {
         $war_id = $request->get('war_id');
-        Log::info($war_id);
 
         if (Auth::user()->can('manage product & service') && $request->ajax()) {
             $product = ProductService::find($id);
             $warehouseProduct = WarehouseProduct::where('warehouse_id', $war_id)->where('product_id', $id)->first();
 
-            Log::info( $war_id);
+            Log::info( $warehouseProduct);
             $productquantity = $warehouseProduct->quantity;
 
             // if ($product) {

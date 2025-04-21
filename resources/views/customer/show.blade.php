@@ -353,4 +353,70 @@
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body table-border-style table-border-style">
+                    <h5 class="d-inline-block mb-5">{{__('Sales')}}</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>{{__('#')}}</th>
+                                <th>{{__('Issue Date')}}</th>
+                                <th>{{__('Subtotal')}}</th>
+                                <th>{{__('Discount')}}</th>
+                                <th>{{__('Total')}}</th>
+                                <th>{{__('Paid')}}</th>
+                                <th>Due</th>
+                                @if(Gate::check('edit invoice') || Gate::check('delete invoice') || Gate::check('show invoice'))
+                                    <th width="10%"> {{__('Action')}}</th>
+                                @endif
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach ($customer->poses as $pos)
+                                <tr>
+                                    <td class="Id">
+                                        {{ $loop->iteration }}
+                                    </td>
+                                    <td>{{ \Auth::user()->dateFormat($pos->created_by) }}</td>
+                                    <td>
+                                        {{ \Auth::user()->priceFormat($pos->posPayment->amount) }}
+                                    </td>
+                                    <td>
+                                        {{ \Auth::user()->priceFormat($pos->posPayment->discount) }}
+                                    </td>
+                                    <td>
+                                        {{ \Auth::user()->priceFormat($pos->posPayment->discount_amount) }}
+                                    </td>
+                                    <td>
+                                        {{ \Auth::user()->priceFormat($pos->posPayment->paid) }}
+                                    </td>
+                                    <td>
+                                        {{ \Auth::user()->priceFormat($pos->posPayment->due) }}
+                                    </td>
+                                    @if(Gate::check('edit invoice') || Gate::check('delete invoice') || Gate::check('show invoice'))
+                                        <td class="Action">
+                                            <span>
+                                                @can('show invoice')
+                                                        <div class="action-btn bg-info ms-2">
+                                                            <a href="{{ route('pos.show',\Crypt::encrypt($pos->id)) }}" class="mx-3 btn btn-sm align-items-center" data-bs-toggle="tooltip" title="{{__('Show')}}" data-original-title="{{__('Detail')}}">
+                                                                <i class="ti ti-eye text-white text-white"></i>
+                                                            </a>
+                                                        </div>
+                                                @endcan
+                                            </span>
+                                        </td>
+                                    @endif
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection

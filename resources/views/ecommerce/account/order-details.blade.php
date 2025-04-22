@@ -23,7 +23,67 @@
             <div class="row">
                 <div class="row">
                     <div class="col-md-6">
-                        <h2 class="mb-2">Order Id - {{$order->order_id}}</h2>
+                        <h2 class="mb-2">Order Id - {{$order->order_id}}
+                            @if($order->status == 'delivered')
+                                <button type="button" class="btn btn-warning ms-5" data-bs-toggle="modal"
+                                    data-bs-target="#exampleModal">Return
+                            Product</button> @endif</h2>
+
+                        <!-- Enhanced Return Product Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="exampleModalLabel">
+                    <i class="fas fa-undo-alt me-2"></i>Return Product
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @foreach ($order->items as $item)
+                    <div class="d-flex w-100 justify-content-between align-items-center py-2 border-bottom mb-3">
+                        <div>
+                            <h5 class="mb-1">{{@$item->product->name}}</h5>
+                            <p class="text-muted mb-0 small">
+                                <span class="fw-semibold">Price:</span> ৳{{@$item->price}}
+                            </p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <label for="item{{@$item->id}}" class="me-2 text-nowrap">Qty:</label>
+                            <input type="number" class="form-control form-control-sm" id="item{{@$item->id}}"
+                                name="quantity" placeholder="Qty" min="1" max="{{@$item->quantity}}" 
+                                value="0">
+                        </div>
+                    </div>
+                @endforeach
+                
+                <div class="mb-3">
+                    <label for="returnReason" class="form-label fw-semibold">
+                        Reason <span class="text-danger">*</span>
+                    </label>
+                    <textarea id="returnReason" name="reason" class="form-control" rows="4" 
+                        placeholder="Please explain why you want to return this product" required></textarea>
+                    <div class="form-text small">Your feedback helps us improve our products and services.</div>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                    <label class="form-check-label small" for="agreeTerms">
+                        I have read and agree to the return policy
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Close
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Return
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
                         <p>{{$order->created_at->format('d/m/Y')}} at
                             {{$order->created_at->setTimezone('Asia/Dhaka')->format('h:i A')}}

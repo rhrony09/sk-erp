@@ -11,7 +11,7 @@
         </div>
         <div class="form-group  col-md-6">
             {{ Form::label('account_id', __('Account'),['class'=>'form-label']) }}
-            {{ Form::select('account_id',$accounts,null, array('class' => 'form-control select','required'=>'required' , 'placeholder'=>__('Enter Account'))) }}
+            {{ Form::select('account_id',$accounts,null, array('class' => 'form-control select' , 'placeholder'=>__('Enter Account'))) }}
         </div>
 
         <div class="form-group  col-md-6">

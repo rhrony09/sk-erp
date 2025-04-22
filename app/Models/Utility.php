@@ -3771,19 +3771,22 @@ class Utility extends Model
     //add quantity in warehouse stock
     public static function addWarehouseStock($product_id, $quantity, $warehouse_id)
     {
+        $userId = Auth::id();
+        $existing = WarehouseProduct::where('product_id', $product_id)
+                    ->where('warehouse_id', $warehouse_id)
+                    ->where('created_by', $userId)
+                    ->first();
 
-        $product = WarehouseProduct::where('product_id', $product_id)->where('warehouse_id', $warehouse_id)->first();
-        if ($product) {
-            $pro_quantity = $product->quantity;
-            $product_quantity = $pro_quantity + $quantity;
-        } else {
-            $product_quantity = $quantity;
+        if ($existing) {
+            $existing->quantity += $quantity;
+            $existing->save();
+            
+        }else {
+            $warehouseProduct = new WarehouseProduct();
+            $warehouseProduct->product_id = $product_id;
+            $warehouseProduct->warehouse_id = $warehouse_id;
+            $warehouseProduct->created_by = $userId;
         }
-
-        $data = WarehouseProduct::updateOrCreate(
-            ['warehouse_id' => $warehouse_id, 'product_id' => $product_id, 'created_by' => \Auth::user()->id],
-            ['warehouse_id' => $warehouse_id, 'product_id' => $product_id, 'quantity' => $product_quantity, 'created_by' => \Auth::user()->id]
-        );
     }
 
     public static function starting_number($id, $type)

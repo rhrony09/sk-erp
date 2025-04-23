@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Mail\SelledInvoice;
+use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\InvoicePayment;
+use App\Models\InvoiceProduct;
 use App\Models\Pos;
 use App\Models\PosPayment;
 use App\Models\PosProduct;
@@ -202,7 +205,8 @@ class PosController extends Controller {
                 $quotation->save();
             }
 
-            $user_id = Auth::user()->creatorId();
+            $user_id = Auth::user()->id;
+            
             $customer_id = $request->vc_name ?? 0;
             $warehouse_id      = warehouse::warehouse_id($request->warehouse_name);
             $pos_id       = $this->invoicePosNumber();
@@ -359,7 +363,32 @@ class PosController extends Controller {
                 $invoice->category_id    = 47;
                 $invoice->created_by     = \Auth::user()->creatorId();
                 $invoice->salesman_id    = $pos->created_by;
+                $invoice->pos_id         = $pos->id;
                 $invoice->save();
+
+                if(!empty($pos->items)){
+                    foreach ($pos->items as $item) {
+                        $invoiceProduct = new InvoiceProduct();
+                        $invoiceProduct->invoice_id = $invoice->id;
+                        $invoiceProduct->product_id = $item->product_id;
+                        $invoiceProduct->price      = $item->price;
+                        $invoiceProduct->quantity   = $item->quantity;
+                        $invoiceProduct->tax        = $item->tax;
+                        $invoiceProduct->discount   = $item->discount;
+                        $invoiceProduct->save();
+                    }
+                }
+
+                if(@$pos->posPayment->paid > 0){
+                    $invoicePayment = new InvoicePayment();
+                    $invoicePayment->invoice_id          = $invoice->id;
+                    $invoicePayment->date           = $pos->created_at;
+                    $invoicePayment->amount         = $pos->posPayment->paid;
+                    $invoicePayment->account_id     = BankAccount::first()->id;
+                    $invoicePayment->payment_method = 0;
+                    $invoicePayment->payment_type = 'Manually';
+                    $invoicePayment->save();
+                }
             }
         }
 

@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Utility;
 use App\Models\WarehouseProduct;
 use App\Models\WarehouseTransfer;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use App\Models\warehouse;
 use Illuminate\Http\Request;
@@ -153,7 +154,24 @@ class PurchaseController extends Controller
                 //Warehouse Stock Report
                 if(isset($products[$i]['item']))
                 {
-                    Utility::addWarehouseStock( $products[$i]['item'],$products[$i]['quantity'],$request->warehouse_id);
+                    $userId = Auth::id();
+                    $existing = WarehouseProduct::where('product_id', $products[$i]['item'])
+                                ->where('warehouse_id', $request->warehouse_id)
+                                ->where('created_by', $userId)
+                                ->first();
+
+                    if ($existing) {
+                        $existing->quantity += $products[$i]['quantity'];
+                        $existing->save();
+                        
+                    }else {
+                        $warehouseProduct = new WarehouseProduct();
+                        $warehouseProduct->product_id = $products[$i]['item'];
+                        $warehouseProduct->warehouse_id = $request->warehouse_id;
+                        $warehouseProduct->created_by = $userId;
+                        $existing->quantity = $products[$i]['quantity'];
+                        $warehouseProduct->save();
+                    }
                 }
 
             }
@@ -185,21 +203,13 @@ class PurchaseController extends Controller
             $id   = Crypt::decrypt($ids);
             $purchase = Purchase::find($id);
 
-            if($purchase->created_by == \Auth::user()->creatorId())
-            {
-
-                $purchasePayment = PurchasePayment::where('purchase_id', $purchase->id)->first();
-                $vendor      = $purchase->vender;
-                $iteams      = $purchase->items;
+            $purchasePayment = PurchasePayment::where('purchase_id', $purchase->id)->first();
+            $vendor      = $purchase->vender;
+            $iteams      = $purchase->items;
 
 
 
-                return view('purchase.view', compact('purchase', 'vendor', 'iteams', 'purchasePayment'));
-            }
-            else
-            {
-                return redirect()->back()->with('error', __('Permission denied.'));
-            }
+            return view('purchase.view', compact('purchase', 'vendor', 'iteams', 'purchasePayment'));
         }
         else
         {
@@ -220,13 +230,13 @@ class PurchaseController extends Controller
 
             $idwww   = Crypt::decrypt($idsd);
             $purchase     = Purchase::find($idwww);
-            $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'expense')->get()->pluck('name', 'id');
+            $category = ProductServiceCategory::where('type', 'expense')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
-            $warehouse     = warehouse::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $warehouse     = warehouse::get()->pluck('name', 'id');
 
             $purchase_number      = \Auth::user()->purchaseNumberFormat($purchase->purchase_id);
-            $venders          = Vender::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->where('type','!=', 'service')->get()->pluck('name', 'id');
+            $venders          = Vender::get()->pluck('name', 'id');
+            $product_services = ProductService::where('type','!=', 'service')->get()->pluck('name', 'id');
 
 
 
@@ -771,7 +781,7 @@ class PurchaseController extends Controller
             $venders = Vender::get()->pluck('name', 'id');
 
             $categories = ProductServiceCategory::get()->pluck('name', 'id');
-            $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->get()->pluck('name', 'id');
 
             return view('purchase.payment', compact('venders', 'categories', 'accounts', 'purchase'));
         }

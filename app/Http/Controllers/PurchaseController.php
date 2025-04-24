@@ -23,6 +23,9 @@ use App\Models\warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Product;
+use App\Models\PurchaseReturn;
+use App\Models\PurchaseReturnItem;
 
 class PurchaseController extends Controller
 {
@@ -192,24 +195,24 @@ class PurchaseController extends Controller
      */
     public function show($ids)
     {
-
         if(\Auth::user()->can('show purchase'))
         {
             try {
-                $id       = Crypt::decrypt($ids);
+                $id = Crypt::decrypt($ids);
+                $purchase = Purchase::find($id);
+                
+                if (!$purchase) {
+                    return redirect()->back()->with('error', __('Purchase Not Found.'));
+                }
+
+                $purchasePayment = PurchasePayment::where('purchase_id', $purchase->id)->first();
+                $vendor = $purchase->vender;
+                $iteams = $purchase->items;
+
+                return view('purchase.view', compact('purchase', 'vendor', 'iteams', 'purchasePayment'));
             } catch (\Throwable $th) {
                 return redirect()->back()->with('error', __('Purchase Not Found.'));
             }
-            $id   = Crypt::decrypt($ids);
-            $purchase = Purchase::find($id);
-
-            $purchasePayment = PurchasePayment::where('purchase_id', $purchase->id)->first();
-            $vendor      = $purchase->vender;
-            $iteams      = $purchase->items;
-
-
-
-            return view('purchase.view', compact('purchase', 'vendor', 'iteams', 'purchasePayment'));
         }
         else
         {
@@ -967,7 +970,6 @@ class PurchaseController extends Controller
         {
 
             $res = PurchaseProduct::where('id', '=', $request->id)->first();
-//            $res1 = PurchaseProduct::where('purchase_id', '=', $res->purchase_id)->where('product_id', '=', $res->product_id)->get();
 
             $purchase = Purchase::first();
             $warehouse_id= $purchase->warehouse_id;
@@ -997,12 +999,4 @@ class PurchaseController extends Controller
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
-
-
-
-
-
-
-
-
 }

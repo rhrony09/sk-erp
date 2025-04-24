@@ -1247,6 +1247,15 @@
                                     <a class="dash-link" href="{{ route('pos.report') }}">{{ __('POS') }}</a>
                                 </li>
                             @endcan
+                            @can('manage pos')
+                                <li class="dash-item {{ Request::route()->getName() == 'sale.return' ? ' active' : '' }}">
+                                    <a class="dash-link" href="{{ route('sale.return') }}">{{ __(' Sale Return') }}</a>
+                                </li>
+                            @endcan
+                            <li class="dash-item {{ Request::route()->getName() == 'purchase.return' && Request::segment(2) == 'return' ? ' active' : '' }}">
+                                <a href="{{ route('purchase.return') }}"
+                                    class="dash-link">{{ __('Purchase Return') }}</a>
+                            </li>
                             @can('manage warehouse')
                                 <li
                                     class="dash-item {{ Request::route()->getName() == 'warehouse-transfer.index' || Request::route()->getName() == 'warehouse-transfer.show' ? ' active' : '' }}">

@@ -94,6 +94,8 @@ use App\Http\Controllers\PaystackPaymentController;
 use App\Http\Controllers\PaytabController;
 use App\Http\Controllers\PaytmPaymentController;
 use App\Http\Controllers\PaytrController;
+use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\YooKassaController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\PermissionController;
@@ -224,6 +226,8 @@ Route::group(['prefix'=> 'erp'], function () {
     // \route group start 
 
 
+    Route::get('purchase/return', [PurchaseReturnController::class, 'index'])->name('purchase.return');
+    Route::post('purchase/return', [PurchaseReturnController::class, 'store'])->name('purchase.return.store');
 
 
 //
@@ -1379,6 +1383,7 @@ Route::group(
 
     }
 );
+
 Route::resource('competencies', CompetenciesController::class)->middleware(['auth', 'XSS']);
 
 Route::group(
@@ -1468,7 +1473,6 @@ Route::get('quotation/pdf/{id}', [QuotationController::class, 'quotation'])->nam
 
 // ------------------------------------- POS System ------------------------------
 Route::resource('warehouse', WarehouseController::class)->middleware(['auth', 'XSS', 'revalidate']);
-
 Route::group(
     [
         'middleware' => [
@@ -1491,6 +1495,7 @@ Route::group(
         Route::get('purchase/{id}/sent', [PurchaseController::class, 'sent'])->name('purchase.sent');
         Route::get('purchase/{id}/resent', [PurchaseController::class, 'resent'])->name('purchase.resent');
 
+        // Removed purchase return routes
     }
 
 );
@@ -1521,6 +1526,14 @@ Route::resource('pos', PosController::class)->middleware(['auth', 'XSS', 'revali
 Route::post('pos-delivey-update/{id}', [PosController::class, 'updateDeliveryStatus'])->name('pos.delivery_status')->middleware(['auth', 'XSS', 'revalidate']);
 Route::any('report/pos', [PosController::class, 'report'])->name('pos.report')->middleware(['auth', 'XSS']);
 Route::get('{cid?}/pos', [PosController::class, 'index'])->name('poses.index');
+
+
+// Sale return 
+Route::get('sale-return', [SaleReturnController::class, 'index'])->name('sale.return')->middleware(['auth', 'XSS']);
+
+Route::post('sale-return/{product_id}/{pos_id}', [SaleReturnController::class, 'store'])->name('sale.return.store')->middleware(['auth', 'XSS']);
+Route::post('update-sale-status/{id}', [SaleReturnController::class, 'updateApprove'])->name('sale.approve.update')->middleware(['auth', 'XSS']);
+Route::delete('delete-sale-status/{id}', [SaleReturnController::class, 'delete'])->name('sale.return.delete')->middleware(['auth', 'XSS']);
 
 Route::get('product-categories', [ProductServiceCategoryController::class, 'getProductCategories'])->name('product.categories')->middleware(['auth', 'XSS']);
 Route::get('add-to-cart/{id}/{session}', [ProductServiceController::class, 'addToCart'])->middleware(['auth', 'XSS']);
@@ -1694,4 +1707,10 @@ Route::group(
 
 
 // router group end 
+});
+
+Route::group(['middleware' => ['auth']], function () {
+    // ... existing code ...
+    
+    // ... existing code ...
 });

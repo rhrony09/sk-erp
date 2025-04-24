@@ -123,6 +123,9 @@
                                         <th class="text-dark">{{__('Tax')}}</th>
                                         <th class="text-dark">{{__('Tax Amount')}}</th>
                                         <th class="text-dark">{{__('Total')}}</th>
+                                        @if($pos->delivery_status == 'delivered')
+                                        <th>Action</th>
+                                        @endif
                                     </tr>
                                     </thead>
                                     @php
@@ -156,7 +159,12 @@
                                         <tr>
                                             <td>{{$key+1}}</td>
                                             <td>{{!empty($iteam->product)?$iteam->product->name:''}}</td>
-                                            <td>{{$iteam->quantity}}</td>
+                                            @php
+                                                $returnedQuantity = App\Models\SaleReturn::where('pos_id', $pos->id)
+                                                    ->where('product_id', $iteam->product_id)
+                                                    ->sum('quantity');
+                                            @endphp
+                                            <td>{{$iteam->quantity}} ({{ $returnedQuantity }} returned)</td>
                                             <td>{{\Auth::user()->priceFormat($iteam->price)}}</td>
                                             <td>
                                                 @if(!empty($iteam->tax))
@@ -181,6 +189,55 @@
                                             </td>
                                             <td>{{\Auth::user()->priceFormat($totalTaxPrice)}}</td>
                                             <td >{{\Auth::user()->priceFormat(($iteam->price*$iteam->quantity) + $totalTaxPrice)}}</td>
+                                            @if($pos->delivery_status == 'delivered')
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#return-{{ $iteam->id }}">Make Return</button>
+                                                <div class="modal fade" id="return-{{ $iteam->id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <form action="{{ route('sale.return.store',[$iteam->product->id, $pos->id]) }}" method="POST"  class="modal-content">
+                                                            @csrf
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="exampleModalLabel">{{ !empty($iteam->product) ? $iteam->product->name : '' }}</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                
+                                                                <!-- Product Preview -->
+                                                                <div class="mb-3 text-center">
+                                                                    <img src="{{ !empty($iteam->product->pro_image) ? asset('storage/uploads/pro_image/' . $iteam->product->pro_image) : 'https://via.placeholder.com/150' }}" 
+                                                                         alt="Product Image" 
+                                                                         class="img-fluid rounded" 
+                                                                         style="max-height: 150px; object-fit: cover;">
+                                                                </div>
+                                                                <div>
+                                                                    <div class="mb-3">
+                                                                        <label for="returnQuantity" class="form-label">Quantity to Return</label>
+                                                                        <input type="number" class="form-control" id="returnQuantity" name="return_quantity" min="1" max="{{ $iteam->quantity - $returnedQuantity}}" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="returnDetails" class="form-label">Reason</label>
+                                                                        <textarea class="form-control" id="returnDetails" name="return_details" rows="4" placeholder="Please provide more information about the return"></textarea>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="returnCondition" class="form-label">Product Condition</label>
+                                                                        <select class="form-select" id="returnCondition" name="product_condition" required>
+                                                                            <option value="" disabled selected>Select condition</option>
+                                                                            <option value="unopened">Unopened</option>
+                                                                            <option value="opened">Opened but Unused</option>
+                                                                            <option value="used">Used</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" class="btn btn-primary">Submit Return</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            @endif
                                         </tr>
                                     @endforeach
 
@@ -192,6 +249,9 @@
                                         <td></td>
                                         <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['amount'])}}</td>
+                                        @if($pos->delivery_status == 'delivered')
+                                        <td></td>
+                                        @endif
                                     </tr>
                                     <tr>
                                         <td><b>{{__('Discount')}}</b></td>
@@ -201,6 +261,9 @@
                                         <td></td>
                                         <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['discount'])}}</td>
+                                        @if($pos->delivery_status == 'delivered')
+                                        <td></td>
+                                        @endif
                                     </tr>
                                     <tr class="pos-header">
                                         <td><b>{{__('Total')}}</b></td>
@@ -210,6 +273,9 @@
                                         <td></td>
                                         <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['discount_amount'])}}</td>
+                                        @if($pos->delivery_status == 'delivered')
+                                        <td></td>
+                                        @endif
                                     </tr>
                                     <tr>
                                         <td><b>{{__('Paid')}}</b></td>
@@ -219,6 +285,9 @@
                                         <td></td>
                                         <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['paid'])}}</td>
+                                        @if($pos->delivery_status == 'delivered')
+                                        <td></td>
+                                        @endif
                                     </tr>
                                     <tr>
                                         <td><b>{{__('Due')}}</b></td>
@@ -228,6 +297,9 @@
                                         <td></td>
                                         <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['due'])}}</td>
+                                        @if($pos->delivery_status == 'delivered')
+                                        <td></td>
+                                        @endif
                                     </tr>
                                 </table>
                             </div>

@@ -9,6 +9,39 @@
     <li class="breadcrumb-item">{{ __('Invoice Create') }}</li>
 @endsection
 @push('script-page')
+    <style>
+        .select2-container--bootstrap-5 .select2-selection {
+            background-color: #292E32 !important;
+            border: 1px solid #424242 !important;
+            color: #fff !important;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            color: #fff !important;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown {
+            background-color: #292E32 !important;
+            border: 1px solid #424242 !important;
+        }
+        .select2-container--bootstrap-5 .select2-search__field {
+            background-color: #1B1B1B !important;
+            border: 1px solid #424242 !important;
+            color: #fff !important;
+        }
+        .select2-container--bootstrap-5 .select2-results__option {
+            color: #fff !important;
+        }
+        .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+        }
+        .select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
+            background-color: #0d6efd !important;
+        }
+        .select2-container--bootstrap-5.select2-container--disabled .select2-selection {
+            background-color: #3a3f44 !important;
+        }
+    </style>
+
     <script src="{{ asset('js/jquery-ui.min.js') }}"></script>
     <script src="{{ asset('js/jquery.repeater.min.js') }}"></script>
     <script>
@@ -32,10 +65,19 @@
                             max_size: 2048
                         });
                     }
-                    if ($('.select2').length) {
-                        $('.select2').select2();
-                    }
-
+                    // Initialize Select2 only for product/service selects within the repeater
+                    $(this).find('.item.select2').each(function() {
+                        if ($(this).hasClass("select2-hidden-accessible")) {
+                            $(this).select2('destroy');
+                        }
+                        $(this).select2({
+                            width: '100%',
+                            dropdownParent: $(this).parent(),
+                            theme: 'bootstrap-5',
+                            templateResult: formatOption,
+                            templateSelection: formatOption
+                        });
+                    });
                 },
                 hide: function(deleteElement) {
                     if (confirm('Are you sure you want to delete this element?')) {
@@ -65,7 +107,7 @@
 
         }
 
-        $(document).on('change', '#customer', function() {
+        $(document).on('change', '#customer-select', function() {
             $('#customer_detail').removeClass('d-none');
             $('#customer_detail').addClass('d-block');
             $('#customer-box').removeClass('d-block');
@@ -91,9 +133,7 @@
                         $('#customer_detail').removeClass('d-block');
                         $('#customer_detail').addClass('d-none');
                     }
-
                 },
-
             });
         });
 
@@ -359,7 +399,7 @@
 
         var customerId = '{{ $customerId }}';
         if (customerId > 0) {
-            $('#customer').val(customerId).change();
+            $('#customer-select').val(customerId).change();
         }
     </script>
     <script>
@@ -371,7 +411,30 @@
 
     <script>
         $(function() {
-            $("#select2").select2();
+            // Initialize customer Select2 only once
+            $('#customer-select').select2({
+                width: '100%',
+                dropdownParent: $('#customer-box'),
+                theme: 'bootstrap-5',
+                templateResult: formatOption,
+                templateSelection: formatOption
+            });
+
+            // Initialize category select
+            $('select[name="category_id"]').select2({
+                width: '100%',
+                theme: 'bootstrap-5',
+                templateResult: formatOption,
+                templateSelection: formatOption
+            });
+
+            // Custom formatting function
+            function formatOption(option) {
+                if (!option.id) {
+                    return option.text;
+                }
+                return $('<span style="color: #fff;">' + option.text + '</span>');
+            }
         });
     </script>
 @endpush
@@ -385,9 +448,8 @@
                     <div class="row">
                         <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
                             <div class="form-group" id="customer-box">
-                                {{ Form::label('customer_id', __('Customer'), ['class' => 'form-label']) }}
-                                {{ Form::select('customer_id', $customers, $customerId, ['class' => 'form-control select2', 'id' => 'customer', 'data-url' => route('invoice.customer'), 'required' => 'required']) }}
-
+                                <!-- {{ Form::label('customer_id', __('Customer'), ['class' => 'form-label']) }} -->
+                                {{ Form::select('customer_id', $customers, $customerId, ['class' => 'form-control select2', 'id' => 'customer-select', 'data-url' => route('invoice.customer'), 'required' => 'required']) }}
                             </div>
 
                             <div id="customer_detail" class="d-none">

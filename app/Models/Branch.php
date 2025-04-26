@@ -17,6 +17,6 @@ class Branch extends Model
 
     public function warehouses()
     {
-        return $this->hasMany('App\Models\Warehouse', 'branch_id');
+        return $this->hasMany('App\Models\warehouse', 'branch_id');
     }
 }

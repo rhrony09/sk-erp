@@ -88,16 +88,15 @@ class InvoiceController extends Controller
         if (\Auth::user()->can('create invoice')) {
             $customFields = CustomField::where('module', '=', 'invoice')->get();
             $invoice_number = \Auth::user()->invoiceNumberFormat($this->invoiceNumber());
-            $customers = Customer::where('created_by', \Auth::user()->creatorId())
-                ->get(['id', 'name', 'contact'])
+            $customers = Customer::get(['id', 'name', 'contact'])
                 ->mapWithKeys(function ($customer) {
                     return [$customer->id => $customer->name . ' (' . $customer->contact . ')'];
                 });
 
             $customers->prepend('Select Customer', '');
-            $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'income')->get()->pluck('name', 'id');
+            $category = ProductServiceCategory::where('type', 'income')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
-            $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $product_services = ProductService::get()->pluck('name', 'id');
             $product_services->prepend('--', '');
 
             return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId'));

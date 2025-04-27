@@ -471,6 +471,8 @@ Route::group(
         Route::get('invoice/items', [InvoiceController::class, 'items'])->name('invoice.items');
         Route::resource('invoice', InvoiceController::class);
         Route::get('invoice/create/{cid}', [InvoiceController::class, 'create'])->name('invoice.create');
+        Route::get('invoice/customers/search', [InvoiceController::class, 'searchCustomers'])->name('invoice.customers.search');
+        Route::get('invoice/products/search', [InvoiceController::class, 'searchProducts'])->name('invoice.products.search');
     }
 );
 
@@ -1714,3 +1716,6 @@ Route::group(['middleware' => ['auth']], function () {
     
     // ... existing code ...
 });
+
+Route::get('invoice/customers/search', [InvoiceController::class, 'searchCustomers'])->name('invoice.customers.search');
+Route::get('invoice/products/search', [InvoiceController::class, 'searchProducts'])->name('invoice.products.search');

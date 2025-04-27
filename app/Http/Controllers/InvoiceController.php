@@ -74,7 +74,7 @@ class InvoiceController extends Controller
             if (!empty($request->status)) {
                 $query->where('status', '=', $request->status);
             }
-            $invoices = $query->get();
+            $invoices = $query->orderBy('id', 'desc')->get();
 
             return view('invoice.index', compact('invoices', 'customer', 'status'));
         } else {
@@ -1154,5 +1154,29 @@ class InvoiceController extends Controller
         ob_end_clean();
 
         return $data;
+    }
+
+    public function searchCustomers(Request $request)
+    {
+        $search = $request->get('search');
+        $customers = Customer::where('name', 'like', "%{$search}%")
+            ->orWhere('email', 'like', "%{$search}%")
+            ->select('id', 'name', 'email')
+            ->limit(10)
+            ->get();
+
+        return response()->json($customers);
+    }
+
+    public function searchProducts(Request $request)
+    {
+        $search = $request->get('search');
+        $products = ProductService::where('name', 'like', "%{$search}%")
+            ->orWhere('sku', 'like', "%{$search}%")
+            ->select('id', 'name', 'sku', 'sale_price')
+            ->limit(10)
+            ->get();
+
+        return response()->json($products);
     }
 }

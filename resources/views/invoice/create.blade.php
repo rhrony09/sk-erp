@@ -8,679 +8,331 @@
     <li class="breadcrumb-item"><a href="{{ route('invoice.index') }}">{{ __('Invoice') }}</a></li>
     <li class="breadcrumb-item">{{ __('Invoice Create') }}</li>
 @endsection
-@push('script-page')
-    <style>
-        .select2-container--bootstrap-5 .select2-selection {
-            background-color: #292E32 !important;
-            border: 1px solid #424242 !important;
-            color: #fff !important;
-        }
-        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            color: #fff !important;
-        }
-        .select2-container--bootstrap-5 .select2-dropdown {
-            background-color: #292E32 !important;
-            border: 1px solid #424242 !important;
-        }
-        .select2-container--bootstrap-5 .select2-search__field {
-            background-color: #1B1B1B !important;
-            border: 1px solid #424242 !important;
-            color: #fff !important;
-        }
-        .select2-container--bootstrap-5 .select2-results__option {
-            color: #fff !important;
-        }
-        .select2-container--bootstrap-5 .select2-results__option--highlighted {
-            background-color: #0d6efd !important;
-            color: #fff !important;
-        }
-        .select2-container--bootstrap-5 .select2-results__option[aria-selected=true] {
-            background-color: #0d6efd !important;
-        }
-        .select2-container--bootstrap-5.select2-container--disabled .select2-selection {
-            background-color: #3a3f44 !important;
-        }
-    </style>
 
-    <script src="{{ asset('js/jquery-ui.min.js') }}"></script>
-    <script src="{{ asset('js/jquery.repeater.min.js') }}"></script>
-    <script>
-        var selector = "body";
-        if ($(selector + " .repeater").length) {
-            var $dragAndDrop = $("body .repeater tbody").sortable({
-                handle: '.sort-handler'
-            });
-            var $repeater = $(selector + ' .repeater').repeater({
-                initEmpty: false,
-                defaultValues: {
-                    'status': 1
-                },
-                show: function() {
-                    $(this).slideDown();
-                    var file_uploads = $(this).find('input.multi');
-                    if (file_uploads.length) {
-                        $(this).find('input.multi').MultiFile({
-                            max: 3,
-                            accept: 'png|jpg|jpeg',
-                            max_size: 2048
-                        });
-                    }
-                    // Initialize Select2 only for product/service selects within the repeater
-                    $(this).find('.item.select2').each(function() {
-                        if ($(this).hasClass("select2-hidden-accessible")) {
-                            $(this).select2('destroy');
-                        }
-                        $(this).select2({
-                            width: '100%',
-                            dropdownParent: $(this).parent(),
-                            theme: 'bootstrap-5',
-                            templateResult: formatOption,
-                            templateSelection: formatOption
-                        });
-                    });
-                },
-                hide: function(deleteElement) {
-                    if (confirm('Are you sure you want to delete this element?')) {
-                        $(this).slideUp(deleteElement);
-                        $(this).remove();
-
-                        var inputs = $(".amount");
-                        var subTotal = 0;
-                        for (var i = 0; i < inputs.length; i++) {
-                            subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-                        }
-                        $('.subTotal').html(subTotal.toFixed(2));
-                        $('.totalAmount').html(subTotal.toFixed(2));
-                    }
-                },
-                ready: function(setIndexes) {
-
-                    $dragAndDrop.on('drop', setIndexes);
-                },
-                isFirstItemUndeletable: true
-            });
-            var value = $(selector + " .repeater").attr('data-value');
-            if (typeof value != 'undefined' && value.length != 0) {
-                value = JSON.parse(value);
-                $repeater.setList(value);
-            }
-
-        }
-
-        $(document).on('change', '#customer-select', function() {
-            $('#customer_detail').removeClass('d-none');
-            $('#customer_detail').addClass('d-block');
-            $('#customer-box').removeClass('d-block');
-            $('#customer-box').addClass('d-none');
-            var id = $(this).val();
-            var url = $(this).data('url');
-            $.ajax({
-                url: url,
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': jQuery('#token').val()
-                },
-                data: {
-                    'id': id
-                },
-                cache: false,
-                success: function(data) {
-                    if (data != '') {
-                        $('#customer_detail').html(data);
-                    } else {
-                        $('#customer-box').removeClass('d-none');
-                        $('#customer-box').addClass('d-block');
-                        $('#customer_detail').removeClass('d-block');
-                        $('#customer_detail').addClass('d-none');
-                    }
-                },
-            });
-        });
-
-        $(document).on('click', '#remove', function() {
-            $('#customer-box').removeClass('d-none');
-            $('#customer-box').addClass('d-block');
-            $('#customer_detail').removeClass('d-block');
-            $('#customer_detail').addClass('d-none');
-        })
-
-        $(document).on('change', '.item', function() {
-
-            var iteams_id = $(this).val();
-            var url = $(this).data('url');
-            var el = $(this);
-
-            $.ajax({
-                url: url,
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': jQuery('#token').val()
-                },
-                data: {
-                    'product_id': iteams_id
-                },
-                cache: false,
-                success: function(data) {
-                    var item = JSON.parse(data);
-                    console.log(el.parent().parent().find('.quantity'))
-                    $(el.parent().parent().find('.quantity')).val(1);
-                    $(el.parent().parent().find('.price')).val(item.product.sale_price);
-                    $(el.parent().parent().parent().find('.pro_description')).val(item.product
-                        .description);
-                    // $('.pro_description').text(item.product.description);
-
-                    var taxes = '';
-                    var tax = [];
-
-                    var totalItemTaxRate = 0;
-
-                    if (item.taxes == 0) {
-                        taxes += '-';
-                    } else {
-                        for (var i = 0; i < item.taxes.length; i++) {
-                            taxes += '<span class="badge bg-primary mt-1 mr-2">' + item.taxes[i].name +
-                                ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
-                            tax.push(item.taxes[i].id);
-                            totalItemTaxRate += parseFloat(item.taxes[i].rate);
-                        }
-                    }
-                    var itemTaxPrice = parseFloat((totalItemTaxRate / 100)) * parseFloat((item.product
-                        .sale_price * 1));
-                    $(el.parent().parent().find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-                    $(el.parent().parent().find('.itemTaxRate')).val(totalItemTaxRate.toFixed(2));
-                    $(el.parent().parent().find('.taxes')).html(taxes);
-                    $(el.parent().parent().find('.tax')).val(tax);
-                    $(el.parent().parent().find('.unit')).html(item.unit);
-                    $(el.parent().parent().find('.discount')).val(0);
-
-                    var inputs = $(".amount");
-                    var subTotal = 0;
-                    for (var i = 0; i < inputs.length; i++) {
-                        subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-                    }
-
-                    var totalItemPrice = 0;
-                    var priceInput = $('.price');
-                    for (var j = 0; j < priceInput.length; j++) {
-                        totalItemPrice += parseFloat(priceInput[j].value);
-                    }
-
-                    var totalItemTaxPrice = 0;
-                    var itemTaxPriceInput = $('.itemTaxPrice');
-                    for (var j = 0; j < itemTaxPriceInput.length; j++) {
-                        totalItemTaxPrice += parseFloat(itemTaxPriceInput[j].value);
-                        $(el.parent().parent().find('.amount')).html(parseFloat(item.totalAmount) +
-                            parseFloat(itemTaxPriceInput[j].value));
-                    }
-
-                    var totalItemDiscountPrice = 0;
-                    var itemDiscountPriceInput = $('.discount');
-
-                    for (var k = 0; k < itemDiscountPriceInput.length; k++) {
-
-                        totalItemDiscountPrice += parseFloat(itemDiscountPriceInput[k].value);
-                    }
-
-                    $('.subTotal').html(totalItemPrice.toFixed(2));
-                    $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-                    $('.totalAmount').html((parseFloat(totalItemPrice) - parseFloat(
-                        totalItemDiscountPrice) + parseFloat(totalItemTaxPrice)).toFixed(2));
-
-
-                },
-            });
-        });
-
-        $(document).on('keyup', '.quantity', function() {
-            var quntityTotalTaxPrice = 0;
-
-            var el = $(this).parent().parent().parent().parent();
-
-            var quantity = $(this).val();
-            var price = $(el.find('.price')).val();
-            var discount = $(el.find('.discount')).val();
-            if (discount.length <= 0) {
-                discount = 0;
-            }
-
-            var totalItemPrice = (quantity * price) - discount;
-
-            var amount = (totalItemPrice);
-
-
-            var totalItemTaxRate = $(el.find('.itemTaxRate')).val();
-            var itemTaxPrice = parseFloat((totalItemTaxRate / 100) * (totalItemPrice));
-            $(el.find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-
-            $(el.find('.amount')).html(parseFloat(itemTaxPrice) + parseFloat(amount));
-
-            var totalItemTaxPrice = 0;
-            var itemTaxPriceInput = $('.itemTaxPrice');
-            for (var j = 0; j < itemTaxPriceInput.length; j++) {
-                totalItemTaxPrice += parseFloat(itemTaxPriceInput[j].value);
-            }
-
-
-            var totalItemPrice = 0;
-            var inputs_quantity = $(".quantity");
-
-            var priceInput = $('.price');
-            for (var j = 0; j < priceInput.length; j++) {
-                totalItemPrice += (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
-            }
-
-            var inputs = $(".amount");
-
-            var subTotal = 0;
-            for (var i = 0; i < inputs.length; i++) {
-                subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-            }
-
-            $('.subTotal').html(totalItemPrice.toFixed(2));
-            $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-
-            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
-
-        })
-
-        $(document).on('keyup change', '.price', function() {
-            var el = $(this).parent().parent().parent().parent();
-            var price = $(this).val();
-            var quantity = $(el.find('.quantity')).val();
-
-            var discount = $(el.find('.discount')).val();
-            if (discount.length <= 0) {
-                discount = 0;
-            }
-            var totalItemPrice = (quantity * price) - discount;
-
-            var amount = (totalItemPrice);
-
-
-            var totalItemTaxRate = $(el.find('.itemTaxRate')).val();
-            var itemTaxPrice = parseFloat((totalItemTaxRate / 100) * (totalItemPrice));
-            $(el.find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-
-            $(el.find('.amount')).html(parseFloat(itemTaxPrice) + parseFloat(amount));
-
-            var totalItemTaxPrice = 0;
-            var itemTaxPriceInput = $('.itemTaxPrice');
-            for (var j = 0; j < itemTaxPriceInput.length; j++) {
-                totalItemTaxPrice += parseFloat(itemTaxPriceInput[j].value);
-            }
-
-
-            var totalItemPrice = 0;
-            var inputs_quantity = $(".quantity");
-
-            var priceInput = $('.price');
-            for (var j = 0; j < priceInput.length; j++) {
-                totalItemPrice += (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
-            }
-
-            var inputs = $(".amount");
-
-            var subTotal = 0;
-            for (var i = 0; i < inputs.length; i++) {
-                subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-            }
-
-            $('.subTotal').html(totalItemPrice.toFixed(2));
-            $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-
-            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
-
-
-        })
-
-        $(document).on('keyup change', '.discount', function() {
-            var el = $(this).parent().parent().parent();
-            var discount = $(this).val();
-            if (discount.length <= 0) {
-                discount = 0;
-            }
-
-            var price = $(el.find('.price')).val();
-            var quantity = $(el.find('.quantity')).val();
-            var totalItemPrice = (quantity * price) - discount;
-
-
-            var amount = (totalItemPrice);
-
-
-            var totalItemTaxRate = $(el.find('.itemTaxRate')).val();
-            var itemTaxPrice = parseFloat((totalItemTaxRate / 100) * (totalItemPrice));
-            $(el.find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-
-            $(el.find('.amount')).html(parseFloat(itemTaxPrice) + parseFloat(amount));
-
-            var totalItemTaxPrice = 0;
-            var itemTaxPriceInput = $('.itemTaxPrice');
-            for (var j = 0; j < itemTaxPriceInput.length; j++) {
-                totalItemTaxPrice += parseFloat(itemTaxPriceInput[j].value);
-            }
-
-
-            var totalItemPrice = 0;
-            var inputs_quantity = $(".quantity");
-
-            var priceInput = $('.price');
-            for (var j = 0; j < priceInput.length; j++) {
-                totalItemPrice += (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
-            }
-
-            var inputs = $(".amount");
-
-            var subTotal = 0;
-            for (var i = 0; i < inputs.length; i++) {
-                subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-            }
-
-
-            var totalItemDiscountPrice = 0;
-            var itemDiscountPriceInput = $('.discount');
-
-            for (var k = 0; k < itemDiscountPriceInput.length; k++) {
-
-                totalItemDiscountPrice += parseFloat(itemDiscountPriceInput[k].value);
-            }
-
-
-            $('.subTotal').html(totalItemPrice.toFixed(2));
-            $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-
-            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
-            $('.totalDiscount').html(totalItemDiscountPrice.toFixed(2));
-
-
-
-
-        })
-
-        var customerId = '{{ $customerId }}';
-        if (customerId > 0) {
-            $('#customer-select').val(customerId).change();
-        }
-    </script>
-    <script>
-        $(document).on('click', '[data-repeater-delete]', function() {
-            $(".price").change();
-            $(".discount").change();
-        });
-    </script>
-
-    <script>
-        $(function() {
-            // Initialize customer Select2 only once
-            $('#customer-select').select2({
-                width: '100%',
-                dropdownParent: $('#customer-box'),
-                theme: 'bootstrap-5',
-                templateResult: formatOption,
-                templateSelection: formatOption
-            });
-
-            // Initialize category select
-            $('select[name="category_id"]').select2({
-                width: '100%',
-                theme: 'bootstrap-5',
-                templateResult: formatOption,
-                templateSelection: formatOption
-            });
-
-            // Custom formatting function
-            function formatOption(option) {
-                if (!option.id) {
-                    return option.text;
-                }
-                return $('<span style="color: #fff;">' + option.text + '</span>');
-            }
-        });
-    </script>
-@endpush
 @section('content')
+<style>
+    .select2 {
+        width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: 38px !important;
+        border: 2px solid #3E3F4A !important;
+        border-radius: 6px !important;
+        background-color: #22242c !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #808191 !important;
+        line-height: 38px !important;
+        padding-left: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 8px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #808191 transparent transparent transparent !important;
+    }
+
+    .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+        border-color: transparent transparent #808191 transparent !important;
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #3E3F4A !important;
+        color: #fff !important;
+    }
+
+    .select2-dropdown {
+        border: 2px solid #3E3F4A !important;
+        border-radius: 6px !important;
+        background-color: #22242c !important;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 2px solid #3E3F4A !important;
+        border-radius: 6px !important;
+        padding: 0.375rem 0.75rem !important;
+        background-color: #22242c !important;
+        color: #808191 !important;
+    }
+
+    .select2-container--default .select2-results__option {
+        padding: 0.375rem 0.75rem !important;
+        color: #808191 !important;
+    }
+
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #3E3F4A !important;
+        color: #fff !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+        color: #808191 !important;
+        font-size: 1.2em !important;
+        margin-right: 20px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #808191 !important;
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #3E3F4A !important;
+        color: #fff !important;
+    }
+</style>
+<form action="{{ route('invoice.store') }}" method="POST">
+    @csrf
     <div class="row">
-        {{ Form::open(['route' => 'invoice.store', 'class' => 'w-100']) }}
-        <div class="col-12">
-            <input type="hidden" name="_token" id="token" value="{{ csrf_token() }}">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-                            <div class="form-group" id="customer-box">
-                                <!-- {{ Form::label('customer_id', __('Customer'), ['class' => 'form-label']) }} -->
-                                {{ Form::select('customer_id', $customers, $customerId, ['class' => 'form-control select2', 'id' => 'customer-select', 'data-url' => route('invoice.customer'), 'required' => 'required']) }}
-                            </div>
-
-                            <div id="customer_detail" class="d-none">
-                            </div>
-                        </div>
-                        <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('issue_date', __('Issue Date'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            {{ Form::date('issue_date', null, ['class' => 'form-control', 'required' => 'required']) }}
-
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('due_date', __('Due Date'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            {{ Form::date('due_date', null, ['class' => 'form-control', 'required' => 'required']) }}
-
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('invoice_number', __('Invoice Number'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            <input type="text" class="form-control" value="{{ $invoice_number }}"
-                                                readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('category_id', __('Category'), ['class' => 'form-label']) }}
-                                        {{ Form::select('category_id', $category, null, ['class' => 'form-control select', 'required' => 'required']) }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('ref_number', __('Ref Number'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            <span><i class="ti ti-joint"></i></span>
-                                            {{ Form::text('ref_number', '', ['class' => 'form-control', 'placeholder' => __('Enter Ref Number')]) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('note', __('Add Note'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            <span><i class="ti ti-joint"></i></span>
-                                            {{ Form::textarea('note', '', ['class' => 'form-control summernote-simple']) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                {{--                                <div class="col-md-6"> --}}
-                                {{--                                    <div class="form-check custom-checkbox mt-4"> --}}
-                                {{--                                        <input class="form-check-input" type="checkbox" name="discount_apply" id="discount_apply"> --}}
-                                {{--                                        <label class="form-check-label " for="discount_apply">{{__('Discount Apply')}}</label> --}}
-                                {{--                                    </div> --}}
-                                {{--                                </div> --}}
-                                {{--                                <div class="col-md-6"> --}}
-                                {{--                                    <div class="form-group"> --}}
-                                {{--                                        {{Form::label('sku',__('SKU')) }} --}}
-                                {{--                                        {!!Form::text('sku', null,array('class' => 'form-control','required'=>'required')) !!} --}}
-                                {{--                                    </div> --}}
-                                {{--                                </div> --}}
-                                @if (!$customFields->isEmpty())
-                                    <div class="col-md-6">
-                                        <div class="tab-pane fade show" id="tab-2" role="tabpanel">
-                                            @include('customFields.formBuilder')
-                                        </div>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <div class="form-group">
+                    <label for="customer_id">Customer</label>
+                    <select class="form-control js-customer-select" id="customer_id" name="customer_id" required>
+                        <option value="">Select a customer</option>
+                    </select>
                 </div>
             </div>
         </div>
-        <div class="col-12">
-            <h5 class=" d-inline-block mb-4">{{ __('Product & Services') }}</h5>
-            <div class="card repeater">
-                <div class="item-section py-2">
-                    <div class="row justify-content-between align-items-center">
-                        <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
-                            <div class="all-button-box me-2">
-                                <a href="#" data-repeater-create="" class="btn btn-primary" data-bs-toggle="modal"
-                                    data-target="#add-bank">
-                                    <i class="ti ti-plus"></i> {{ __('Add item') }}
-                                </a>
-                            </div>
-                        </div>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="issueDate" class="form-label">Issue Date</label>
+                        <input type="date" class="form-control" id="issueDate" name="issue_date">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="dueDate" class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="dueDate" name="due_date">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                        <input type="text" class="form-control" id="invoiceNumber" value="{{ $invoice_number }}" readonly>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category_id">
+                            <option value="">Select Category</option>
+                            @foreach($category as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="refNumber" class="form-label">Ref Number</label>
+                        <input type="text" class="form-control" id="refNumber" name="ref_number" placeholder="Enter REF">
                     </div>
                 </div>
-                <div class="card-body table-border-style mt-2">
-                    <div class="table-responsive">
-                        <table class="table datatable mb-0 table-custom-style" data-repeater-list="items"
-                            id="sortable-table">
-                            <thead>
-                                <tr>
-                                    <th>{{ __('Items') }}</th>
-                                    <th>{{ __('Quantity') }}</th>
-                                    <th>{{ __('Price') }} </th>
-                                    <th>{{ __('Discount') }}</th>
-                                    <th>{{ __('Tax') }} (%)</th>
-                                    <th class="text-end">{{ __('Amount') }} <br><small
-                                            class="text-danger font-weight-bold">{{ __('after tax & discount') }}</small>
-                                    </th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-
-                            <tbody class="ui-sortable" data-repeater-item>
-                                <tr>
-
-                                    <td width="25%" class="form-group pt-0">
-                                        <select name="item" class="form-control select2 item" id="select"
-                                            data-url="{{ route('invoice.product') }}" required>
-                                            <option value="">-- Select Product --</option>
-                                            @foreach ($product_services as $key => $value)
-                                                <option value="{{ $key }}">{{ $value }}</option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <div class="form-group price-input input-group search-form">
-                                            {{ Form::text('quantity', '', ['class' => 'form-control quantity', 'required' => 'required', 'placeholder' => __('Qty'), 'required' => 'required']) }}
-                                            <span class="unit input-group-text bg-transparent"></span>
-                                        </div>
-                                    </td>
-
-
-                                    <td>
-                                        <div class="form-group price-input input-group search-form">
-                                            {{ Form::text('price', '', ['class' => 'form-control price', 'required' => 'required', 'placeholder' => __('Price'), 'required' => 'required']) }}
-                                            <span
-                                                class="input-group-text bg-transparent">{{ \Auth::user()->currencySymbol() }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="form-group price-input input-group search-form">
-                                            {{ Form::text('discount', '', ['class' => 'form-control discount', 'required' => 'required', 'placeholder' => __('Discount')]) }}
-                                            <span
-                                                class="input-group-text bg-transparent">{{ \Auth::user()->currencySymbol() }}</span>
-                                        </div>
-                                    </td>
-
-
-
-                                    <td>
-                                        <div class="form-group">
-                                            <div class="input-group colorpickerinput">
-                                                <div class="taxes"></div>
-                                                {{ Form::hidden('tax', '', ['class' => 'form-control tax text-dark']) }}
-                                                {{ Form::hidden('itemTaxPrice', '', ['class' => 'form-control itemTaxPrice']) }}
-                                                {{ Form::hidden('itemTaxRate', '', ['class' => 'form-control itemTaxRate']) }}
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <td class="text-end amount">0.00</td>
-                                    <td>
-                                        <a href="#"
-                                            class="ti ti-trash text-white repeater-action-btn bg-danger ms-2 bs-pass-para"
-                                            data-repeater-delete></a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2">
-                                        <div class="form-group">
-                                            {{ Form::textarea('description', null, ['class' => 'form-control pro_description', 'rows' => '2', 'placeholder' => __('Description')]) }}
-                                        </div>
-                                    </td>
-                                    <td colspan="5"></td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td><strong>{{ __('Sub Total') }} ({{ \Auth::user()->currencySymbol() }})</strong>
-                                    </td>
-                                    <td class="text-end subTotal">0.00</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td><strong>{{ __('Discount') }} ({{ \Auth::user()->currencySymbol() }})</strong></td>
-                                    <td class="text-end totalDiscount">0.00</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td><strong>{{ __('Tax') }} ({{ \Auth::user()->currencySymbol() }})</strong></td>
-                                    <td class="text-end totalTax">0.00</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td class="blue-text"><strong>{{ __('Total Amount') }}
-                                            ({{ \Auth::user()->currencySymbol() }})</strong></td>
-                                    <td class="text-end totalAmount blue-text"></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                <div class="mb-3">
+                    <label for="note" class="form-label">Add Note</label>
+                    <textarea class="form-control" id="note" rows="3" name="note"></textarea>
                 </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <input type="button" value="{{ __('Cancel') }}" onclick="location.href = '{{ route('invoice.index') }}';"
-                class="btn btn-light">
-            <input type="submit" value="{{ __('Create') }}" class="btn btn-primary">
-        </div>
-        {{ Form::close() }}
-
     </div>
+
+    <!-- Product & Services -->
+    <div class="card p-3">
+        <div class="d-flex justify-content-between mb-3">
+            <button type="button" class="btn btn-primary" id="addItemBtn">ADD ITEM</button>
+        </div>
+        <div class="table-responsive m-0 w-100">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ITEMS</th>
+                        <th>QUANTITY</th>
+                        <th>PRICE</th>
+                        <th>DISCOUNT</th>
+                        <th>TAX (%)</th>
+                        <th>AMOUNT AFTER DISCOUNT</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    <tr>
+                        <td>
+                            <div class="form-group">
+                                <label for="product_id_0">Product</label>
+                                <select class="form-control js-product-select" id="product_id_0" name="items[0][item]" required>
+                                    <option value="">Select a product</option>
+                                </select>
+                            </div>
+                            <textarea class="form-control mt-2" name="items[0][description]" placeholder="Description" rows="2"></textarea>
+                        </td>
+                        <td><input name="items[0][quantity]" type="number" class="form-control" value="1"></td>
+                        <td><input name="items[0][price]" type="number" class="form-control" value="0.00"></td>
+                        <td><input name="items[0][discount]" type="number" class="form-control" value="0"></td>
+                        <td><input name="items[0][tax]" type="number" class="form-control" value="0"></td>
+                        <td>0.00</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm remove-row" disabled>
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="d-flex justify-content-between mt-3">
+            <div>
+                <button type="button" class="btn btn-outline-secondary me-2">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Counter for dynamic product rows
+        let productRowCounter = 1;
+
+        // Function to calculate amount after discount
+        function calculateAmount(row) {
+            const quantity = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
+            const price = parseFloat(row.find('input[name*="[price]"]').val()) || 0;
+            const discount = parseFloat(row.find('input[name*="[discount]"]').val()) || 0;
+            
+            const total = (price * quantity) - discount;
+            row.find('td:last').prev().text(total.toFixed(2));
+        }
+
+        // Initialize Select2 for customer search
+        $('.js-customer-select').select2({
+            ajax: {
+                url: '{{ route("invoice.customers.search") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        search: params.term
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: $.map(data, function(item) {
+                            return {
+                                id: item.id,
+                                text: item.name + ' (' + item.email + ')'
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            placeholder: "Select a customer",
+            minimumInputLength: 2,
+            allowClear: true,
+            width: '100%',
+            theme: 'default'
+        });
+
+        // Function to initialize Select2 for product dropdowns
+        function initializeProductSelect(element, index) {
+            $(element).select2({
+                ajax: {
+                    url: '{{ route("invoice.products.search") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: $.map(data, function(item) {
+                                return {
+                                    id: item.id,
+                                    text: item.name + ' (' + item.sku + ') - ' + item.sale_price + '৳'
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                placeholder: "Select a product",
+                minimumInputLength: 2,
+                allowClear: true,
+                width: '100%',
+                theme: 'default'
+            }).on('select2:select', function(e) {
+                // Update the price field when a product is selected
+                const selectedData = e.params.data;
+                const row = $(this).closest('tr');
+                const priceField = row.find('input[name="items[' + index + '][price]"]');
+                const price = selectedData.text.match(/(\d+\.\d+|\d+)৳/);
+                if (price) {
+                    priceField.val(parseFloat(price[0].replace('৳', '')));
+                    calculateAmount(row);
+                }
+            });
+        }
+
+        // Initialize Select2 for the initial product dropdown
+        initializeProductSelect('#product_id_0', 0);
+
+        // Add event listeners for quantity, price, and discount changes
+        $(document).on('input', 'input[name*="[quantity]"], input[name*="[price]"], input[name*="[discount]"]', function() {
+            calculateAmount($(this).closest('tr'));
+        });
+
+        // Add new product row on "Add Item" click
+        $('#addItemBtn').on('click', function() {
+            const newRow = `
+                <tr>
+                    <td>
+                        <div class="form-group">
+                            <label for="product_id_${productRowCounter}">Product</label>
+                            <select class="form-control js-product-select" id="product_id_${productRowCounter}" name="items[${productRowCounter}][item]" required>
+                                <option value="">Select a product</option>
+                            </select>
+                        </div>
+                        <textarea class="form-control mt-2" name="items[${productRowCounter}][description]" placeholder="Description" rows="2"></textarea>
+                    </td>
+                    <td><input name="items[${productRowCounter}][quantity]" type="number" class="form-control" value="1"></td>
+                    <td><input name="items[${productRowCounter}][price]" type="number" class="form-control" value="0.00"></td>
+                    <td><input name="items[${productRowCounter}][discount]" type="number" class="form-control" value="0"></td>
+                    <td><input name="items[${productRowCounter}][tax]" type="number" class="form-control" value="0"></td>
+                    <td>0.00</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remove-row">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            $('#productTableBody').append(newRow);
+
+            // Initialize Select2 for the newly added product dropdown
+            initializeProductSelect(`#product_id_${productRowCounter}`, productRowCounter);
+
+            productRowCounter++;
+        });
+
+        // Handle row removal
+        $(document).on('click', '.remove-row', function() {
+            const rowCount = $('#productTableBody tr').length;
+            if (rowCount > 1) {
+                $(this).closest('tr').remove();
+                productRowCounter--;
+            }
+        });
+
+        // Calculate initial amounts
+        $('#productTableBody tr').each(function() {
+            calculateAmount($(this));
+        });
+    });
+</script>
 @endsection

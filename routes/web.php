@@ -1719,3 +1719,7 @@ Route::group(['middleware' => ['auth']], function () {
 
 Route::get('invoice/customers/search', [InvoiceController::class, 'searchCustomers'])->name('invoice.customers.search');
 Route::get('invoice/products/search', [InvoiceController::class, 'searchProducts'])->name('invoice.products.search');
+
+Route::post('pos/{id}/delivery-status', [PosController::class, 'updateDeliveryStatus'])->name('pos.delivery_status');
+Route::get('pos/search-employees', [PosController::class, 'searchEmployees'])->name('pos.search_employees');
+Route::post('pos/{id}/assign-employees', [PosController::class, 'assignEmployees'])->name('pos.assign_employees')->middleware(['auth', 'XSS', 'revalidate']);

@@ -264,7 +264,7 @@
                                     @endif
                                 </p>
 
-                                @if($invoice->status==0)
+                                @if($invoice->status==0 && $invoice->customer_id != 0)
                                     @can('send bill')
                                         <a href="{{ route('invoice.sent',$invoice->id) }}" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" data-original-title="{{__('Mark Sent')}}"><i class="ti ti-send mr-2"></i>{{__('Send')}}</a>
                                     @endcan
@@ -275,8 +275,8 @@
                                     <i class="ti ti-report-money text-info"></i>
                                 </div>
                                 <h6 class="text-info my-3">{{__('Get Paid')}}</h6>
-                                <p class="text-muted text-sm mb-3">{{__('Status')}} : {{__('Awaiting payment')}} </p>
-                                @if($invoice->status!=0)
+                                <p class="text-muted text-sm mb-3">{{__('Status')}} : {{__('Awaiting payment')}}</p>
+                                @if($invoice->status!=0 || $invoice->customer_id == 0)
                                     @can('create payment invoice')
                                         <a href="#" data-url="{{ route('invoice.payment',$invoice->id) }}" data-ajax-popup="true" data-title="{{__('Add Payment')}}" class="btn btn-sm btn-info" data-original-title="{{__('Add Payment')}}"><i class="ti ti-report-money mr-2"></i>{{__('Add Payment')}}</a> <br>
                                     @endcan

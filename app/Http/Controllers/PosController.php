@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use App\Models\AssignToPos;
+use App\Models\Employee;
 
 class PosController extends Controller {
     /**
@@ -227,6 +229,7 @@ class PosController extends Controller {
                     $pos->customer_id      = $customer_id;
                     $pos->warehouse_id      = $request->warehouse_name;
                     $pos->created_by       = $user_id;
+                    $pos->delivery_status = 'pending';
                     $pos->save();
 
                     if ($request->quotation_id != 0) {
@@ -301,12 +304,7 @@ class PosController extends Controller {
 
                     session()->forget('pos');
 
-                    return response()->json(
-                        [
-                            'code' => 200,
-                            'success' => __('Payment completed successfully!'),
-                        ]
-                    );
+                    return redirect()->route('pos.show', Crypt::encrypt($pos->id))->with('success', __('Payment completed successfully!'));
                 }
             } else {
                 return response()->json(
@@ -321,24 +319,26 @@ class PosController extends Controller {
         }
     }
 
-    public function show($ids) {
-
+    public function show($ids)
+    {
         if (\Auth::user()->can('manage pos')) {
             try {
-                $id       = Crypt::decrypt($ids);
+                $id = Crypt::decrypt($ids);
             } catch (\Throwable $th) {
                 return redirect()->back()->with('error', __('Pos Not Found.'));
             }
-            $id   = Crypt::decrypt($ids);
+            $id = Crypt::decrypt($ids);
 
             $pos = Pos::find($id);
-
             $posPayment = PosPayment::where('pos_id', $pos->id)->first();
+            $customer = $pos->customer;
+            $iteams = $pos->items;
+            
+            // Get all employees and assigned employees
+            $employees = Employee::all();
+            $assignedEmployees = AssignToPos::where('pos_id', $pos->id)->pluck('employee_id')->toArray();
 
-                $customer             = $pos->customer;
-                $iteams               = $pos->items;
-
-                return view('pos.view', compact('pos', 'customer', 'iteams', 'posPayment'));
+            return view('pos.view', compact('pos', 'customer', 'iteams', 'posPayment', 'employees', 'assignedEmployees'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
@@ -349,6 +349,8 @@ class PosController extends Controller {
         $pos = Pos::find($id);
 
         $pos->delivery_status = $request->delivery_status;
+        $pos->delivery_date = $request->delivery_date;
+        $pos->delivery_time = $request->delivery_time;
         $pos->save();
         
         if($request->delivery_status == 'delivered'){
@@ -395,6 +397,20 @@ class PosController extends Controller {
         return redirect()->back()->with('success', __('Delivery status updated successfully.'));
     }
 
+    public function assignTechnician(Request $request, $id)
+    {
+        $pos = Pos::find($id);
+        
+        if (!$pos) {
+            return redirect()->back()->with('error', __('POS not found.'));
+        }
+
+        $pos->technician_id = $request->technician_id;
+        $pos->save();
+
+        return redirect()->back()->with('success', __('Technician assigned successfully.'));
+    }
+
     function invoiceNumber()
     {
         $latest = Invoice::latest()->first();
@@ -428,11 +444,20 @@ class PosController extends Controller {
 
         if (\Auth::user()->can('manage pos')) {
             if ($branchId && $role->role_id != 10) {
-                $posPayments = Pos::with(['customer', 'warehouse', 'createdBy'])->whereHas('warehouse', function($query) use ($branchId) {
-                    $query->where('branch_id', $branchId);
-                })->get();
-            }else{
-                $posPayments = Pos::with(['customer', 'warehouse', 'createdBy'])->get();
+                $posPayments = Pos::with(['customer', 'warehouse', 'createdBy', 'posPayment'])
+                    ->whereHas('warehouse', function($query) use ($branchId) {
+                        $query->where('branch_id', $branchId);
+                    })
+                    ->join('pos_payments', 'pos.id', '=', 'pos_payments.pos_id')
+                    ->orderBy('pos_payments.due', 'desc')
+                    ->select('pos.*')
+                    ->get();
+            } else {
+                $posPayments = Pos::with(['customer', 'warehouse', 'createdBy', 'posPayment'])
+                    ->join('pos_payments', 'pos.id', '=', 'pos_payments.pos_id')
+                    ->orderBy('pos_payments.due', 'desc')
+                    ->select('pos.*')
+                    ->get();
             }
             
             return view('pos.report', compact('posPayments'));
@@ -861,5 +886,47 @@ class PosController extends Controller {
         ];
 
         return view('pos.printview', compact('details', 'sales', 'customer', 'productServices', 'barcode'));
+    }
+
+    public function searchEmployees(Request $request)
+    {
+        $search = $request->search;
+        $employees = User::where('type', 'employee')
+            ->where(function($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%')
+                      ->orWhere('employee_id', 'like', '%' . $search . '%');
+            })
+            ->select('id', 'name', 'employee_id')
+            ->paginate(10);
+
+        return response()->json($employees);
+    }
+
+    public function assignEmployees(Request $request, $id)
+    {
+        if (\Auth::user()->can('manage pos')) {
+            $pos = Pos::find($id);
+            
+            if (!$pos) {
+                return redirect()->back()->with('error', __('POS not found.'));
+            }
+
+            // Delete existing assignments
+            AssignToPos::where('pos_id', $pos->id)->delete();
+
+            // Create new assignments
+            if (!empty($request->employees)) {
+                foreach ($request->employees as $employeeId) {
+                    AssignToPos::create([
+                        'pos_id' => $pos->id,
+                        'employee_id' => $employeeId
+                    ]);
+                }
+            }
+
+            return redirect()->back()->with('success', __('Employees assigned successfully.'));
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
     }
 }

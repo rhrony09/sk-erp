@@ -31,19 +31,38 @@
 @endsection
 
 @section('action-btn')
-    <div class="float-end d-flex">
+    <div class="float-end d-flex align-items-end">
 
-        <form id="delivery_status" action="{{ route('pos.delivery_status', $pos->id) }}" class="me-2" method="post">
+        <form id="delivery_status" action="{{ route('pos.delivery_status', $pos->id) }}" class="row align-items-end" method="post">
             @csrf
-            <select onchange="document.getElementById('delivery_status').submit();" name="delivery_status" class="form-select" id="">
-                <option value="pending" @if($pos->delivery_status == 'pending') selected @endif>Pending</option>
-                <option value="shipping" @if($pos->delivery_status == 'shipping') selected @endif>Shipping</option>
-                <option value="delivered" @if($pos->delivery_status == 'delivered') selected @endif>Delivered</option>
-                <option value="cancelled" @if($pos->delivery_status == 'cancelled') selected @endif>Cancelled</option>
-            </select>
+            <div class="col-md-3">
+                <div class="form-group mb-0">
+                    <label for="delivery_status">{{ __('Delivery Status') }}</label>
+                    <select class="form-control" id="delivery_status" name="delivery_status">
+                        <option value="pending" {{ $pos->delivery_status == 'pending' ? 'selected' : '' }}>{{ __('Pending') }}</option>
+                        <option value="processing" {{ $pos->delivery_status == 'processing' ? 'selected' : '' }}>{{ __('Processing') }}</option>
+                        <option value="delivered" {{ $pos->delivery_status == 'delivered' ? 'selected' : '' }}>{{ __('Delivered') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group mb-0">
+                    <label for="delivery_date">{{ __('Delivery Date') }}</label>
+                    <input type="date" class="form-control" id="delivery_date" name="delivery_date" value="{{ $pos->delivery_date ? \Carbon\Carbon::parse($pos->delivery_date)->format('Y-m-d') : '' }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group mb-0">
+                    <label for="delivery_time">{{ __('Delivery Time') }}</label>
+                    <input type="time" class="form-control" id="delivery_time" name="delivery_time" value="{{ $pos->delivery_time ? \Carbon\Carbon::parse($pos->delivery_time)->format('H:i') : '' }}">
+                </div>
+            </div>
+            <div class="col-md-3 mt-3">
+                <button type="submit" class="btn btn-primary">{{ __('Update') }}</button>
+            </div>
         </form>
 
-        <a href="{{ route('pos.pdf', Crypt::encrypt($pos->id))}}" class="btn btn-primary" target="_blank">{{__('Download')}}</a>
+        <a href="{{ route('pos.pdf', Crypt::encrypt($pos->id))}}" class="btn btn-primary" style="height: max-content;" target="_blank">{{__('Download')}}</a>
     </div>
 @endsection
 
@@ -308,5 +327,66 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-12 mt-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">{{ __('Assign Employees') }}</h5>
+                </div>
+                <div class="card-body">
+                    <form id="assign_employees" action="{{ route('pos.assign_employees', $pos->id) }}" method="post">
+                        @csrf
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="employees">{{ __('Select Employees') }}</label>
+                                    <select class="form-control select2" id="employees" name="employees[]" multiple>
+                                        @foreach($employees as $employee)
+                                            <option value="{{ $employee->id }}" {{ in_array($employee->id, $assignedEmployees) ? 'selected' : '' }}>
+                                                {{ $employee->name }} ({{ $employee->phone }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                <button type="submit" class="btn btn-primary">{{ __('Assign Employees') }}</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
+
+@push('script-page')
+<!-- <script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            placeholder: "{{ __('Search and select employees') }}",
+            allowClear: true,
+            ajax: {
+                url: "{{ route('pos.search_employees') }}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term,
+                        page: params.page || 1
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data.data,
+                        pagination: {
+                            more: data.next_page_url ? true : false
+                        }
+                    };
+                },
+                cache: true
+            }
+        });
+    });
+</script> -->
+@endpush

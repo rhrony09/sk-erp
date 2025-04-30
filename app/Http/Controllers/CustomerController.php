@@ -42,7 +42,36 @@ class CustomerController extends Controller
                             ->orWhere('shipping_phone', 'LIKE', "%{$search}%");
                     });
                 })
+                ->with(['poses.posPayment'])
+                ->orderBy(
+                    \DB::raw('(SELECT SUM(pos_payments.amount) FROM pos 
+                        JOIN pos_payments ON pos.id = pos_payments.pos_id 
+                        WHERE pos.customer_id = customers.id)'), 
+                    'desc'
+                )
+                ->orderBy(
+                    \DB::raw('(SELECT SUM(pos_payments.due) FROM pos 
+                        JOIN pos_payments ON pos.id = pos_payments.pos_id 
+                        WHERE pos.customer_id = customers.id)'), 
+                    'desc'
+                )
                 ->paginate(25);
+
+            // Calculate total sales and due amounts for each customer
+            foreach ($customers as $customer) {
+                $totalSales = 0;
+                $totalDue = 0;
+                
+                foreach ($customer->poses as $pos) {
+                    if ($pos->posPayment) {
+                        $totalSales += $pos->posPayment->amount;
+                        $totalDue += $pos->posPayment->due;
+                    }
+                }
+                
+                $customer->total_sales = $totalSales;
+                $customer->total_due = $totalDue;
+            }
 
             return view('customer.index', compact('customers', 'search'));
         } else {

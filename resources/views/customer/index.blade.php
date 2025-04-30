@@ -57,7 +57,8 @@
                                     <th>{{ __('Name') }}</th>
                                     <th>{{ __('Contact') }}</th>
                                     <th>{{ __('Email') }}</th>
-                                    {{-- <th>{{ __('Balance') }}</th> --}}
+                                    <th>Total Sales</th>
+                                    <th>Total Due</th>
                                     <th>{{ __('Action') }}</th>
                                 </tr>
                             </thead>
@@ -81,7 +82,8 @@
                                         <td class="font-style">{{ $customer['name'] }}</td>
                                         <td>{{ $customer['contact'] }}</td>
                                         <td>{{ $customer['email'] }}</td>
-                                        {{-- <td>{{ \Auth::user()->priceFormat($customer['balance']) }}</td> --}}
+                                        <td>{{ $customer['total_sales'] }}৳</td>
+                                        <td>{{ $customer['total_due'] }}৳</td>
                                         <td class="Action">
                                             @if ($customer['is_active'] == 0)
                                                 <i class="ti ti-lock" title="Inactive"></i>

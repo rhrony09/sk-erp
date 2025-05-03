@@ -77,7 +77,7 @@ class PaymentController extends Controller
             $venders = Vender::get()->pluck('name', 'id');
             $venders->prepend('--', 0);
             $categories = ProductServiceCategory::where('type', '=', 'expense')->get()->pluck('name', 'id');
-            $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->get()->pluck('name', 'id');
 
             return view('payment.create', compact('venders', 'categories', 'accounts'));
         }

@@ -116,10 +116,17 @@
 
 @push('script-page')
     <script>
-        $(document).ready(function () {
-            var w_id = $('#warehouse_id').val();
-            getProduct(w_id);
+         $(document).ready(function () {
+            // Listen for the modal being shown
+            $(document).on('shown.bs.modal', '#commonModal', function () {
+                // Check if this is the warehouse transfer modal
+                if ($('#commonModal .modal-title').text().includes('Warehouse Transfer')) {
+                    var warehouse_id = '0';
+                    getProduct(warehouse_id);
+                }
+            });
         });
+
         $(document).on('change', 'select[name=from_warehouse]', function () {
             var warehouse_id = $(this).val();
             getProduct(warehouse_id);

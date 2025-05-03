@@ -127,10 +127,10 @@
                         <div class="card-header p-2">
                             <div class="row">
 
-                                <div class="col-md-6">
-                                    {{ Form::select('customer_id', $customers, '', array('class' => 'form-control select2 customer_select', 'id'=>'customer', 'required'=>'required', 'name'=>'vc_name')) }}
-                                    {{ Form::hidden('vc_name_hidden', '', ['id' => 'vc_name_hidden']) }}
-                                </div>
+                            <div class="col-md-6">
+                                {{ Form::select('customer_id', $customers, '', ['class' => 'form-control select2 select_custom_test', 'id'=>'customer', 'required'=>'required', 'name'=>'vc_name']) }}
+                                {{ Form::hidden('customer_name_hidden', '', ['id' => 'customer_name_hidden']) }}
+                            </div>
 
                                 <div class="col-md-6">
                                     {{ Form::select('warehouse_id', $warehouses,$warehouseId, array('class' => 'form-control select warehouse_select ','id'=>'warehouse','required'=>'required')) }}
@@ -643,7 +643,7 @@
             var dark = 'text-dark';
             $('.category-select').parent().removeClass('cat-active');
             $('.category-select').find('.card-title').removeClass('text-white').addClass('text-dark');
-            $('.category-select').find('.card-title').parent().removeClass('text-white').addClass('text-dark');
+            $('.category-select').find('.card-title').parent().removeClass('text-dark').addClass('text-dark');
             $(this).find('.card-title').removeClass('text-dark').addClass('text-white');
             $(this).find('.card-title').parent().removeClass('text-dark').addClass('text-white');
             $(this).parent().addClass('cat-active');
@@ -683,13 +683,73 @@
 
         })
 
+        // Initialize Select2 without AJAX
+        // $('.customer_select').select2({
+        //     placeholder: "{{ __('Search and select customer') }}",
+        //     allowClear: true,
+        //     minimumInputLength: 0
+        // });
+
+        // // Add keyup event handler for the search input
+        // $(document).on('keyup', '.customer_select', function() {
+        //     alert("ok");
+        //     var searchTerm = $(this).val();
+        //     var select = $('.customer_select');
+            
+        //     // Clear existing options
+        //     select.empty();
+            
+        //     // Add loading option
+        //     select.append(new Option('Loading...', '', true, true));
+            
+        //     // Make AJAX request
+        //     $.ajax({
+        //         url: "{{ route('customers.search') }}",
+        //         dataType: 'json',
+        //         data: {
+        //             search: searchTerm
+        //         },
+        //         success: function(data) {
+        //             // Clear loading option
+        //             select.empty();
+                    
+        //             // Add new options
+        //             $.each(data, function(index, item) {
+        //                 select.append(new Option(
+        //                     item.name + (item.contact ? ' (' + item.contact + ')' : ''),
+        //                     item.id,
+        //                     false,
+        //                     false
+        //                 ));
+        //             });
+                    
+        //             // If no search term, show first 10 customers
+        //             if (!searchTerm) {
+        //                 select.trigger('change');
+        //             }
+        //         }
+        //     });
+        // });
+
+        // // Trigger initial load of first 10 customers
+        // // $('.select2-search__field').trigger('keyup');
+
+
+        $('.choices__input choices__input--cloned').on('keyup', function () {
+            alert("ok");
+        });
+
     });
 
 </script>
+
+
+
 <script>
     var site_currency_symbol_position = '{{ \App\Models\Utility::getValByName('site_currency_symbol_position') }}';
     var site_currency_symbol = '{{ \App\Models\Utility::getValByName('site_currency_symbol') }}';
 </script>
+
 
 
 </body>

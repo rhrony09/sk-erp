@@ -26,6 +26,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Log;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Branch;
 
 
 
@@ -39,7 +40,7 @@ class ProductServiceController extends Controller
             ->where('model_has_roles.model_type', \App\Models\User::class)
             ->select('roles.name', 'roles.id as role_id')
             ->first();
-
+            
         if (\Auth::user()->can('manage product & service')) {
             $category = ProductServiceCategory::where('type', '=', 'product & service')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
@@ -52,6 +53,17 @@ class ProductServiceController extends Controller
                 $productServices = ProductService::where('category_id', $request->category)
                                     ->with(['taxes', 'unit', 'category'])
                                     ->get();
+            }
+            elseif (!empty($request->branch)) {
+                // Get product IDs from WarehouseProduct for the selected branch
+                $productIds = WarehouseProduct::whereHas('warehouse', function ($query) use ($request) {
+                    $query->where('branch_id', $request->branch);
+                })->pluck('product_id')->unique();
+
+                // Fetch ProductService data for those products
+                $productServices = ProductService::whereIn('id', $productIds)
+                    ->with(['taxes', 'unit', 'category'])
+                    ->get();
             } else {
                 $productServices = ProductService::with(['taxes', 'unit', 'category'])->get();
             }
@@ -85,7 +97,11 @@ class ProductServiceController extends Controller
 
             $raw_materials = RawMaterial::get()->pluck('name', 'id');
 
-            return view('productservice.index', compact('productServices', 'category', 'raw_materials', 'branchId', 'role'));
+            // Add this line to fetch branches
+            $branch = Branch::pluck('name', 'id');
+            $branch->prepend('Select Branch', '');
+
+            return view('productservice.index', compact('productServices', 'category', 'raw_materials', 'branchId', 'role', 'branch'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
@@ -687,7 +703,6 @@ class ProductServiceController extends Controller
             $product = ProductService::find($id);
             $warehouseProduct = WarehouseProduct::where('warehouse_id', $war_id)->where('product_id', $id)->first();
 
-            Log::info( $warehouseProduct);
             $productquantity = $warehouseProduct->quantity;
 
             // if ($product) {

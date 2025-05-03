@@ -221,6 +221,7 @@ Route::name('ecommerce.')->group(function () {
      Route::post('/make-order', [OrderController::class,'makeOrder'])->name('makeOrder')->middleware('auth');
 });
 
+Route::get('customers/search-select', [CustomerController::class, 'searchCustomers'])->name('customers.search');
 
 Route::group(['prefix'=> 'erp'], function () {
     // \route group start 

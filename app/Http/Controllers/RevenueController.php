@@ -80,7 +80,7 @@ class RevenueController extends Controller
             $customers = Customer::get()->pluck('name', 'id');
             $customers->prepend('--', 0);
             $categories = ProductServiceCategory::where('type', '=','income')->get()->pluck('name', 'id');
-            $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->get()->pluck('name', 'id');
 
             return view('revenue.create', compact('customers', 'categories', 'accounts'));
         }

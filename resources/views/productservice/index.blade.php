@@ -75,6 +75,14 @@
                     <div class="card-body">
                         {{ Form::open(['route' => ['productservice.index'], 'method' => 'GET', 'id' => 'product_service']) }}
                         <div class="d-flex align-items-center justify-content-end">
+                            @if($role->role_id == 10)
+                            <div class="col-xl-3 col-lg-3 col-md-6 me-1">
+                                <div class="btn-box">
+                                    {{ Form::label('branch', __('Branch'), ['class' => 'form-label']) }}
+                                    {{ Form::select('branch', $branch, null, ['class' => 'form-control select', 'id' => 'choices-multiple', 'required' => 'required']) }}
+                                </div>
+                            </div>
+                            @endif
                             <div class="col-xl-3 col-lg-3 col-md-6">
                                 <div class="btn-box">
                                     {{ Form::label('category', __('Category'), ['class' => 'form-label']) }}

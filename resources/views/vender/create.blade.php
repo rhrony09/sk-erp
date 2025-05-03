@@ -12,13 +12,13 @@
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{ Form::label('contact', __('Contact No.'), ['class' => 'form-label']) }}
-                {{ Form::number('contact', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Contact')]) }}
+                {{ Form::text('contact', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Contact')]) }}
             </div>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{ Form::label('email', __('Email'), ['class' => 'form-label']) }}
-                {{ Form::email('email', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter email')]) }}
+                {{ Form::email('email', null, ['class' => 'form-control', 'placeholder' => __('Enter email')]) }}
             </div>
         </div>
 

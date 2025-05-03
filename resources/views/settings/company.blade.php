@@ -3803,7 +3803,7 @@
 
                     <div class="" id="google-calender">
                         <div class="card">
-                            {{ Form::open(['route' => route('google.calender.settings'), 'enctype' => 'multipart/form-data']) }}
+                            {{ Form::open(['route' => 'google.calender.settings', 'enctype' => 'multipart/form-data']) }}
                             <div class="card-header">
                                 <div class="row">
                                     <div class="col-6">
@@ -3859,7 +3859,7 @@
                                 </div>
                             @endif
                         </div>
-                        {{ Form::open(['route' => route('seo.settings.store'), 'method' => 'post', 'enctype' => 'multipart/form-data']) }}
+                        {{ Form::open(['route' => 'seo.settings.store', 'method' => 'post', 'enctype' => 'multipart/form-data']) }}
                         @csrf
                         <div class="card-body">
                             <div class="row">

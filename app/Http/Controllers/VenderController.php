@@ -54,7 +54,6 @@ class VenderController extends Controller {
             $rules = [
                 'name' => 'required',
                 'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/',
-                'email' => 'required|email|unique:venders',
             ];
             $validator = \Validator::make($request->all(), $rules);
             if ($validator->fails()) {

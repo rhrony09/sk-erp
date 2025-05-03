@@ -815,8 +815,8 @@ class PosController extends Controller {
         $user = Auth::user();
         $settings = Utility::settings();
 
-        $customer = Customer::where('name', '=', $request->vc_name)->where('created_by', $user->creatorId())->first();
-        $warehouse = warehouse::where('id', '=', $request->warehouse_name)->where('created_by', $user->creatorId())->first();
+        $customer = Customer::where('name', '=', $request->vc_name)->first();
+        $warehouse = warehouse::where('id', '=', $request->warehouse_name)->first();
 
         $details = [
             'pos_id' => $user->posNumberFormat($this->invoicePosNumber()),

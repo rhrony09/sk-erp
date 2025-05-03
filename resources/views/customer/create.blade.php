@@ -12,7 +12,7 @@
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{ Form::label('contact', __('Contact'), ['class' => 'form-label']) }}
-                {{ Form::number('contact', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Contact')]) }}
+                {{ Form::text('contact', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Contact')]) }}
             </div>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-6">

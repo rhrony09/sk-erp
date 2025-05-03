@@ -97,9 +97,7 @@ class CustomerController extends Controller
 
             $rules = [
                 'name' => 'required',
-                'email' => 'required|email|unique:customers,email,',
                 'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|unique:customers,contact',
-                'password' => 'required|min:6',
             ];
 
 
@@ -570,5 +568,39 @@ class CustomerController extends Controller
         }
 
         return redirect()->back()->with($data['status'], $data['msg']);
+    }
+
+    public function searchCustomers(Request $request)
+    {
+        \Log::info('Search customers request received', ['request' => $request->all()]);
+        if (\Auth::user()->can('manage customer')) {
+            $search = $request->input('search');
+            $page = $request->input('page', 1);
+            $perPage = 10;
+
+            $customers = Customer::when($search, function ($query, $search) {
+                    return $query->where(function ($query) use ($search) {
+                        $query->where('name', 'LIKE', "%{$search}%")
+                            ->orWhere('contact', 'LIKE', "%{$search}%");
+                    });
+                })
+                ->skip(($page - 1) * $perPage)
+                ->take($perPage)
+                ->get();
+
+            return response()->json([
+                'results' => $customers->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'text' => $item->name . ' (' . $item->contact . ')'
+                    ];
+                }),
+                'pagination' => [
+                    'more' => $customers->count() === $perPage
+                ]
+            ]);
+        } else {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
     }
 }

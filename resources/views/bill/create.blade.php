@@ -522,7 +522,7 @@
                         <div class="col-md-6">
                             <div class="form-group" id="vender-box">
                                 {{ Form::label('vender_id', __('Vendor'),['class'=>'form-label']) }}
-                                {{ Form::select('vender_id', $venders,$vendorId, array('class' => 'form-control select','id'=>'vender','data-url'=>route('bill.vender'),'required'=>'required')) }}
+                                {{ Form::select('vender_id', $venders,$vendorId, array('class' => 'form-control select select2' ,'id'=>'vender','data-url'=>route('bill.vender'),'required'=>'required')) }}
                             </div>
                             <div id="vender_detail" class="d-none">
                             </div>

@@ -588,13 +588,17 @@ class CustomerController extends Controller
                 ->take($perPage)
                 ->get();
 
+            \Log::info('Customers found', ['count' => $customers->count()]);
+
+            $results = $customers->map(function ($item) {
+                return [
+                    'id' => $item->name,
+                    'text' => $item->name . ' (' . $item->contact . ')'
+                ];
+            });
+
             return response()->json([
-                'results' => $customers->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'text' => $item->name . ' (' . $item->contact . ')'
-                    ];
-                }),
+                'results' => $results,
                 'pagination' => [
                     'more' => $customers->count() === $perPage
                 ]

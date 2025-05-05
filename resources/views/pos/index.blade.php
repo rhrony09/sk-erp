@@ -28,6 +28,9 @@
         {{ !empty($companySettings['header_text']) ? $companySettings['header_text']->value : config('app.name', 'ERPGO SaaS') }}
         - {{ __('POS') }}</title>
 
+    <!-- Add Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    
     <link rel="icon"
           href="{{ asset(Storage::url('uploads/logo/')) . '/' . (isset($companySettings['company_favicon']) && !empty($companySettings['company_favicon']) ? $companySettings['company_favicon']->value : 'favicon.png') }}"
           type="image" sizes="16x16">
@@ -80,6 +83,41 @@
 
 <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">
     @stack('css-page')
+
+<style>
+    /* Custom Select2 styling to match Bootstrap dark form-control */
+    .select2-container--default .select2-selection--single {
+        background-color: #23242a;
+        border: 1px solid #444950;
+        border-radius: 0.375rem;
+        height: 38px;
+        padding: 6px 12px;
+        color: #fff;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #fff;
+        line-height: 24px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+        right: 10px;
+    }
+    .select2-container--default .select2-selection--single:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .select2-container--default .select2-results > .select2-results__options {
+        background: #23242a;
+        color: #fff;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #007bff;
+        color: #fff;
+    }
+</style>
 </head>
 
 <body class="{{ $themeColor }}">
@@ -128,7 +166,7 @@
                             <div class="row">
 
                             <div class="col-md-6">
-                                {{ Form::select('customer_id', $customers, '', ['class' => 'form-control select2 select_custom_test', 'id'=>'customer', 'required'=>'required', 'name'=>'vc_name']) }}
+                                {{ Form::select('customer_id', [], '', ['class' => 'form-control', 'id'=>'customer', 'required'=>'required', 'name'=>'vc_name', 'data-placeholder' => __('Search and select customer')]) }}
                                 {{ Form::hidden('customer_name_hidden', '', ['id' => 'customer_name_hidden']) }}
                             </div>
 
@@ -253,9 +291,11 @@
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center justify-content-between pt-3" id="btn-pur">
-                                        <button type="button" class="btn btn-primary rounded"  data-ajax-popup="true" data-size="xl"
-                                                data-align="centered" data-url="{{route('pos.create')}}" data-title="{{__('POS Invoice')}}"
-                                                @if(session($lastsegment) && !empty(session($lastsegment)) && count(session($lastsegment)) > 0) @else disabled="disabled" @endif>
+                                        <button type="button" class="btn btn-primary rounded" id="pay-btn"
+                                            data-ajax-popup="true" data-size="xl"
+                                            data-align="centered" data-url="{{ route('pos.create') }}"
+                                            data-title="{{ __('POS Invoice') }}"
+                                            @if(session($lastsegment) && !empty(session($lastsegment)) && count(session($lastsegment)) > 0) @else disabled="disabled" @endif>
                                             {{ __('PAY') }}
                                         </button>
                                         <div class="tab-content btn-empty text-end">
@@ -307,6 +347,8 @@
 <script src="{{ asset('assets/js/dash.js') }}"></script>
 <script src="{{ asset('js/moment.min.js') }}"></script>
 
+<!-- Add Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script src="{{ asset('assets/js/plugins/bootstrap-switch-button.min.js') }}"></script>
 
@@ -610,7 +652,7 @@
 
                 method: 'GET',
                 data: {
-                    vc_name: $('#vc_name_hidden').val(),
+                    vc_name: $('#customer_name_hidden').val(),
                     warehouse_name: $('#warehouse_name_hidden').val(),
                     discount : $('#discount_hidden').val(),
                     quotation_id : $('#quotation_id').val(),
@@ -683,57 +725,58 @@
 
         })
 
-        // Initialize Select2 without AJAX
-        // $('.customer_select').select2({
-        //     placeholder: "{{ __('Search and select customer') }}",
-        //     allowClear: true,
-        //     minimumInputLength: 0
-        // });
+        $(document).ready(function() {
+            // Initialize Select2
+            $('#customer').select2({
+                ajax: {
+                    url: '{{ route('customers.search') }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            page: params.page || 1
+                        };
+                    },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data.results,
+                            pagination: {
+                                more: data.pagination.more
+                            }
+                        };
+                    },
+                    cache: true
+                },
+                placeholder: '{{ __('Search and select customer') }}',
+                minimumInputLength: 1,
+                language: {
+                    noResults: function() {
+                        return "{{ __('No customers found') }}";
+                    },
+                    searching: function() {
+                        return "{{ __('Searching...') }}";
+                    }
+                }
+            }).on('select2:open', function() {
+                console.log('Select2 opened');
+            }).on('select2:error', function(e) {
+                console.error('Select2 error:', e);
+            });
 
-        // // Add keyup event handler for the search input
-        // $(document).on('keyup', '.customer_select', function() {
-        //     alert("ok");
-        //     var searchTerm = $(this).val();
-        //     var select = $('.customer_select');
-            
-        //     // Clear existing options
-        //     select.empty();
-            
-        //     // Add loading option
-        //     select.append(new Option('Loading...', '', true, true));
-            
-        //     // Make AJAX request
-        //     $.ajax({
-        //         url: "{{ route('customers.search') }}",
-        //         dataType: 'json',
-        //         data: {
-        //             search: searchTerm
-        //         },
-        //         success: function(data) {
-        //             // Clear loading option
-        //             select.empty();
-                    
-        //             // Add new options
-        //             $.each(data, function(index, item) {
-        //                 select.append(new Option(
-        //                     item.name + (item.contact ? ' (' + item.contact + ')' : ''),
-        //                     item.id,
-        //                     false,
-        //                     false
-        //                 ));
-        //             });
-                    
-        //             // If no search term, show first 10 customers
-        //             if (!searchTerm) {
-        //                 select.trigger('change');
-        //             }
-        //         }
-        //     });
-        // });
-
-        // // Trigger initial load of first 10 customers
-        // // $('.select2-search__field').trigger('keyup');
-
+            $('#customer').on('change', function() {
+                $('#customer_name_hidden').val($(this).val());
+                // Update PAY button data-url with vc_name as query param
+                var baseUrl = "{{ route('pos.create') }}";
+                var vcName = $('#customer_name_hidden').val();
+                $('#pay-btn').attr('data-url', baseUrl + '?vc_name=' + encodeURIComponent(vcName));
+            });
+            // Optionally, update on page load if a customer is pre-selected
+            var baseUrl = "{{ route('pos.create') }}";
+            var vcName = $('#customer_name_hidden').val();
+            $('#pay-btn').attr('data-url', baseUrl + '?vc_name=' + encodeURIComponent(vcName));
+        });
 
         $('.choices__input choices__input--cloned').on('keyup', function () {
             alert("ok");

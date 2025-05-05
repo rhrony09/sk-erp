@@ -50,6 +50,7 @@ use App\Http\Controllers\Ecommerce\PageController;
 use App\Http\Controllers\Ecommerce\ProductController;
 use App\Http\Controllers\Ecommerce\ProfileController;
 use App\Http\Controllers\Ecommerce\WishlistController;
+use App\Http\Controllers\Ecommerce\BannerController;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ErpOrderController;
@@ -219,6 +220,8 @@ Route::name('ecommerce.')->group(function () {
      Route::get('/checkout', [OrderController::class,'index'])->name('checkoutPage')->middleware('auth');
      Route::get('/order-details/{order_id}', [PageController::class,'orderDetails'])->name('orderDetails')->middleware('auth');
      Route::post('/make-order', [OrderController::class,'makeOrder'])->name('makeOrder')->middleware('auth');
+
+     Route::get('/banners', [BannerController::class,'index'])->name('banners');
 });
 
 Route::get('customers/search-select', [CustomerController::class, 'searchCustomers'])->name('customers.search');
@@ -1724,3 +1727,13 @@ Route::get('invoice/products/search', [InvoiceController::class, 'searchProducts
 Route::post('pos/{id}/delivery-status', [PosController::class, 'updateDeliveryStatus'])->name('pos.delivery_status');
 Route::get('pos/search-employees', [PosController::class, 'searchEmployees'])->name('pos.search_employees');
 Route::post('pos/{id}/assign-employees', [PosController::class, 'assignEmployees'])->name('pos.assign_employees')->middleware(['auth', 'XSS', 'revalidate']);
+
+Route::prefix('ecommerce')->name('ecommerce.')->group(function () {
+    // ... other ecommerce routes ...
+    Route::get('banners', [\App\Http\Controllers\Ecommerce\BannerController::class, 'index'])->name('banners');
+    Route::get('banners/create', [\App\Http\Controllers\Ecommerce\BannerController::class, 'create'])->name('banners.create');
+    Route::post('banners', [\App\Http\Controllers\Ecommerce\BannerController::class, 'store'])->name('banners.store');
+    Route::get('banners/{banner}/edit', [\App\Http\Controllers\Ecommerce\BannerController::class, 'edit'])->name('banners.edit');
+    Route::put('banners/{banner}', [\App\Http\Controllers\Ecommerce\BannerController::class, 'update'])->name('banners.update');
+    Route::delete('banners/{banner}', [\App\Http\Controllers\Ecommerce\BannerController::class, 'destroy'])->name('banners.destroy');
+});

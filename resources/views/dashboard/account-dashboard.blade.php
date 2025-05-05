@@ -487,20 +487,20 @@
                                     <h5 class="mt-1 mb-0">Order Delivery</h5>
                                 </div>
                                 <div class="card-body p-0">
-                                    @foreach ($orders as $order)
                                         <table class="table border-0">
                                             <tr>
                                                 <th>Order</th>
                                                 <th>Delivery Date</th>
                                                 <th>Amount</th>
                                             </tr>
+                                            @foreach ($orders as $order)
                                             <tr>
                                                 <td>{{$order->order_id}}</td>
                                                 <td>{{$order->estimated_delivery_date}} @if($order->estimated_delivery_date < now()) <div class="badge bg-danger ms-2">Late</div> @endif</td>
                                                 <td>{{$order->total}}৳</td>
                                             </tr>
+                                            @endforeach
                                         </table>
-                                    @endforeach
                                 </div>
                             </div>
                         </div>

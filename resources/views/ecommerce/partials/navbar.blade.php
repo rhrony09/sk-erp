@@ -127,42 +127,6 @@
                             <nav id="mobile-menu">
                                 <ul>
                                     <li><a href="/" class="text-white">HOME</a></li>
-                                    <li class="static"><a href="#" class="text-white">SHOP NOW<span class="lnr lnr-chevron-down"></span></a>
-                                        <ul class="mega-menu mega-full">
-                                            <li class="mega-title"><a href="#">Column one</a>
-                                                <ul>
-                                                    <li><a href="shop-grid-left-sidebar.html">Shop grid left sidebar</a></li>
-                                                    <li><a href="shop-grid-right-sidebar.html">Shop grid right sightbar</a></li>
-                                                    <li><a href="shop-grid-full-width-4-column.html">Shop grid full width</a></li>
-                                                    <li><a href="shop-list-full-width.html">Shop list full width</a></li>
-                                                </ul>
-                                            </li>
-                                            <li class="mega-title"><a href="#">Column two</a>
-                                                <ul>
-                                                    <li><a href="checkout.html">Check Out</a></li>
-                                                    <li><a href="cart.html">Cart</a></li>
-                                                    <li><a href="wishlist.html">Wishlist</a></li>
-                                                    <li><a href="compare.html">Compare</a></li>
-                                                </ul>
-                                            </li>
-                                            <li class="mega-title"><a href="#">Column Three</a>
-                                                <ul>
-                                                    <li><a href="product-details.html">Product Details</a></li>
-                                                    <li><a href="product-details-variable.html">Product Details Variable</a></li>
-                                                    <li><a href="product-details-external.html">Product Details External</a></li>
-                                                    <li><a href="product-details-group.html">Product Details Group</a></li>
-                                                </ul>
-                                            </li>
-                                            <li class="mega-title"><a href="#">Column Four</a>
-                                                <ul>
-                                                    <li><a href="login.html">login</a></li>
-                                                    <li><a href="register.html">register</a></li>
-                                                    <li><a href="my-account.html">my account</a></li>
-                                                    <li><a href="contact-us.html">contact us</a></li>
-                                                </ul>
-                                            </li>
-                                        </ul>
-                                    </li>
                                     
                                     <li><a href="#" class="text-white">ABOUT</a></li>
                                     <li><a href="#" class="text-white">BLOG</a></li>

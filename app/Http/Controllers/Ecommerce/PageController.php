@@ -15,7 +15,7 @@ class PageController extends Controller
     {
         $userId = Auth::id();
         
-        $featuredCategories = ProductServiceCategory::where('type','product & service')->where('is_featured', 1)->select('id','name', 'slug','thumbnail','slug')->with('products:id,category_id')->get(); 
+        $featuredCategories = ProductServiceCategory::where('type','product & service')->where('is_featured', 1)->select('id','name', 'slug','thumbnail','slug')->with('products:id,category_id,slug,name,discount_price,sale_price,pro_image')->get(); 
         $featuredProducts = ProductService::where('type', 'product')
     ->where('is_featured', 1)
     ->select('id', 'category_id', 'description', 'name', 'slug', 'pro_image', 'sale_price', 'discount_price', 'created_at')

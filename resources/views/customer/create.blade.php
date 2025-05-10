@@ -96,8 +96,7 @@
 
     @if (App\Models\Utility::getValByName('shipping_display') == 'on')
         <div class="col-md-12 text-end">
-            <input type="button" id="billing_data" value="{{ __('Shipping Same As Billing') }}"
-                class="btn btn-primary">
+            <input type="button" id="billing_data" value="{{ __('Shipping Same As Billing') }}" class="btn btn-primary">
         </div>
         <h6 class="sub-title">{{ __('Shipping Address') }}</h6>
         <div class="row">
@@ -157,6 +156,53 @@
             </div>
 
         </div>
+
+        <script>
+            $(document).ready(function() {
+                $('#billing_data').on('click', function () {
+                    console.log('Billing data button clicked');
+                    // Populate shipping name from billing name
+                    $('input[name="shipping_name"]').val(
+                        $('input[name="billing_name"]').val()
+                    );
+
+                    // Populate shipping phone from billing phone
+                    $('input[name="shipping_phone"]').val(
+                        $('input[name="billing_phone"]').val()
+                    );
+
+                    // Populate shipping email from billing email
+                    $('input[name="shipping_email"]').val(
+                        $('input[name="billing_email"]').val()
+                    );
+
+                    // Populate shipping address from billing address
+                    $('textarea[name="shipping_address"]').val(
+                        $('textarea[name="billing_address"]').val()
+                    );
+
+                    // Populate shipping city from billing city
+                    $('input[name="shipping_city"]').val(
+                        $('input[name="billing_city"]').val()
+                    );
+
+                    // Populate shipping state from billing state
+                    $('input[name="shipping_state"]').val(
+                        $('input[name="billing_state"]').val()
+                    );
+
+                    // Populate shipping country from billing country
+                    $('input[name="shipping_country"]').val(
+                        $('input[name="billing_country"]').val()
+                    );
+
+                    // Populate shipping zip from billing zip
+                    $('input[name="shipping_zip"]').val(
+                        $('input[name="billing_zip"]').val()
+                    );
+                });
+            });
+        </script>
     @endif
 
 </div>

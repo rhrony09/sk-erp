@@ -93,9 +93,22 @@
             <div class="card p-3">
                 <div class="form-group">
                     <label for="customer_id">Customer</label>
-                    <select class="form-control js-customer-select" id="customer_id" name="customer_id" required>
-                        <option value="">Select a customer</option>
-                    </select>
+                    <div class="row d-flex">
+                        <div class="col-md-4 pe-0">
+                            <select name="type" class="form-control">
+                                <option value="sl-no">#SL No.</option>
+                                <option value="name" selected>Name</option>
+                                <option value="email">Email</option>
+                                <option value="contact">Phone</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <select class="form-control js-customer-select" id="customer_id" name="customer_id" required>
+                                <option value="">Select a customer</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -207,6 +220,12 @@
             row.find('td:last').prev().text(total.toFixed(2));
         }
 
+        // Add event listener for search type change
+        $('select[name="type"]').on('change', function() {
+            // Clear the customer select when search type changes
+            $('.js-customer-select').val(null).trigger('change');
+        });
+
         // Initialize Select2 for customer search
         $('.js-customer-select').select2({
             ajax: {
@@ -215,15 +234,35 @@
                 delay: 250,
                 data: function(params) {
                     return {
-                        search: params.term
+                        search: params.term,
+                        type: $('select[name="type"]').val()
                     };
                 },
                 processResults: function(data) {
+                    const searchType = $('select[name="type"]').val();
                     return {
                         results: $.map(data, function(item) {
+                            let displayText = '';
+                            
+                            // Format display text based on search type
+                            switch(searchType) {
+                                case 'sl-no':
+                                    displayText = item.name + ' (#' + item.customer_id + ')';
+                                    break;
+                                case 'email':
+                                    displayText = item.name + ' (' + item.email + ')';
+                                    break;
+                                case 'contact':
+                                    displayText = item.name + ' (' + item.contact + ')';
+                                    break;
+                                default: // 'name' or any other
+                                    displayText = item.name;
+                                    break;
+                            }
+                            
                             return {
                                 id: item.id,
-                                text: item.name + ' (' + item.email + ')'
+                                text: displayText
                             };
                         })
                     };

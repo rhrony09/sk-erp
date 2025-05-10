@@ -1159,9 +1159,34 @@ class InvoiceController extends Controller
     public function searchCustomers(Request $request)
     {
         $search = $request->get('search');
-        $customers = Customer::where('name', 'like', "%{$search}%")
-            ->orWhere('email', 'like', "%{$search}%")
-            ->select('id', 'name', 'email')
+        $type = $request->get('type', 'name'); // Default to name if type is not provided
+        
+        $query = Customer::query();
+        
+        // Filter based on search type
+        switch ($type) {
+            case 'sl-no':
+                $query->where('customer_id', 'like', "%{$search}%");
+                break;
+            case 'name':
+                $query->where('name', 'like', "%{$search}%");
+                break;
+            case 'email':
+                $query->where('email', 'like', "%{$search}%");
+                break;
+            case 'contact':
+                $query->where('contact', 'like', "%{$search}%");
+                break;
+            default:
+                // If no valid type is provided, search across all fields
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('contact', 'like', "%{$search}%")
+                    ->orWhere('customer_id', 'like', "%{$search}%");
+                break;
+        }
+        
+        $customers = $query->select('id', 'name', 'email', 'contact', 'customer_id')
             ->limit(10)
             ->get();
 

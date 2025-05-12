@@ -18,7 +18,7 @@ class DebitNoteController extends Controller
     {
         if(\Auth::user()->can('manage debit note'))
         {
-            $bills = Bill::where('created_by', \Auth::user()->creatorId())->with(['vender'])->get();
+            $bills = Bill::with(['vender'])->get();
 
             return view('debitNote.index', compact('bills'));
         }

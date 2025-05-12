@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'payment','enctype' => 'multipart/form-data')) }}
+{{ Form::open(array('route' => 'payment.store', 'method' => 'POST', 'enctype' => 'multipart/form-data')) }}
 <div class="modal-body">
     <div class="row">
         <div class="form-group col-md-6">

@@ -544,7 +544,14 @@
                                                 <tr>
                                                     <td colspan="6"></td>
                                                     <td class="text-end"><b>{{__('Discount')}}</b></td>
-                                                    <td class="text-end">{{\Auth::user()->priceFormat($invoice->getTotalDiscount())}}</td>
+                                                    <td class="text-end">
+                                                        {{\Auth::user()->priceFormat($invoice->getTotalDiscount())}}
+                                                        @if(\Auth::user()->can('edit invoice'))
+                                                        <a href="#" class="ms-2" data-bs-toggle="modal" data-bs-target="#edit-discount-modal" title="{{__('Edit Discount')}}">
+                                                            <i class="ti ti-pencil text-white"></i>
+                                                        </a>
+                                                        @endif
+                                                    </td>
                                                 </tr>
 
                                             @if(!empty($taxesData))
@@ -648,7 +655,7 @@
                                         @can('delete invoice product')
                                             <td>
                                                 <div class="action-btn bg-danger ms-2">
-                                                    {!! Form::open(['method' => 'post', 'route' => ['invoice.payment.destroy',$invoice->id,$payment->id],'id'=>'delete-form-'.$payment->id]) !!}
+                                                    {!! Form::open(['method' => 'post', 'route' => ['invoice.payment.destroy',$invoice->id,$payment->id],'id'=>'delete-form-'.$payment->id, 'style' => 'margin: 0']) !!}
 
                                                     <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para" data-bs-toggle="tooltip" title="Delete" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$payment->id}}').submit();">
                                                         <i class="ti ti-trash text-white"></i>
@@ -703,7 +710,7 @@
 
                                                 @endif
                                                 <div class="action-btn bg-danger ms-2">
-                                                    {!! Form::open(['method' => 'post', 'route' => ['invoice.payment.destroy',$invoice->id,$bankPayment->id],'id'=>'delete-form-'.$bankPayment->id]) !!}
+                                                    {!! Form::open(['method' => 'post', 'route' => ['invoice.payment.destroy',$invoice->id,$bankPayment->id],'id'=>'delete-form-'.$bankPayment->id, 'style' => 'margin: 0']) !!}
 
                                                     <a href="#" class="mx-3 btn btn-sm align-items-center bs-pass-para" data-bs-toggle="tooltip" title="Delete" data-original-title="{{__('Delete')}}" data-confirm="{{__('Are You Sure?').'|'.__('This action can not be undone. Do you want to continue?')}}" data-confirm-yes="document.getElementById('delete-form-{{$bankPayment->id}}').submit();">
                                                         <i class="ti ti-trash text-white"></i>
@@ -783,3 +790,30 @@
         </div>
     </div>
 @endsection
+
+@if(\Auth::user()->can('edit invoice'))
+<!-- Modal for editing discount -->
+<div class="modal fade" id="edit-discount-modal" tabindex="-1" role="dialog" aria-labelledby="edit-discount-modal-label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="edit-discount-modal-label">{{ __('Edit Discount') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="discount-form" action="{{ route('invoice.update.discount', $invoice->id) }}" method="POST">
+                    @csrf
+                    <div class="form-group">
+                        <label for="discount_apply" class="form-label">{{ __('Discount Amount') }}</label>
+                        <input type="number" name="discount_apply" id="discount_apply" class="form-control" value="{{ $invoice->discount_apply ?? 0 }}" step="0.01" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('Update') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif

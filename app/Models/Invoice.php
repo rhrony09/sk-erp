@@ -81,7 +81,7 @@ class Invoice extends Model
 
     public function getTotalDiscount()
     {
-        $totalDiscount = 0;
+        $totalDiscount = $this->discount_apply ?? 0;
         foreach($this->items as $product)
         {
             $totalDiscount += $product->discount;

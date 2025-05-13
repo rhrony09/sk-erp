@@ -463,6 +463,7 @@ Route::group(
         Route::get('invoice/{id}/duplicate', [InvoiceController::class, 'duplicate'])->name('invoice.duplicate');
         Route::get('invoice/{id}/shipping/print', [InvoiceController::class, 'shippingDisplay'])->name('invoice.shipping.print');
         Route::get('invoice/{id}/payment/reminder', [InvoiceController::class, 'paymentReminder'])->name('invoice.payment.reminder');
+        Route::post('invoice/{id}/update-discount', [InvoiceController::class, 'updateDiscountApply'])->name('invoice.update.discount');
         Route::get('invoice/index', [InvoiceController::class, 'index'])->name('invoice.index');
         Route::post('invoice/product/destroy', [InvoiceController::class, 'productDestroy'])->name('invoice.product.destroy');
         Route::post('invoice/product', [InvoiceController::class, 'product'])->name('invoice.product');

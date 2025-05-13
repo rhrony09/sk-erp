@@ -159,7 +159,7 @@ class InvoiceController extends Controller
             $invoice->category_id = $request->category_id;
             $invoice->ref_number = $request->ref_number;
             $invoice->note = $request->note;
-            // $invoice->discount_apply = isset($request->discount_apply) ? 1 : 0;
+            $invoice->discount_apply = $request->discount_apply ?? 0;
             $invoice->created_by = \Auth::user()->creatorId();
             $invoice->salesman_id = \Auth::user()->id;
             $invoice->save();
@@ -257,6 +257,7 @@ class InvoiceController extends Controller
                 $invoice->ref_number = $request->ref_number;
                 $invoice->note = $request->note;
                 $invoice->category_id = $request->category_id;
+                $invoice->discount_apply = $request->discount_apply ?? 0;
                 $invoice->save();
 
                 Utility::starting_number($invoice->invoice_id + 1, 'invoice');
@@ -1203,5 +1204,34 @@ class InvoiceController extends Controller
             ->get();
 
         return response()->json($products);
+    }
+
+    public function updateDiscountApply(Request $request, $id)
+    {
+        if (\Auth::user()->can('edit invoice')) {
+            $validator = \Validator::make(
+                $request->all(),
+                [
+                    'discount_apply' => 'required|numeric',
+                ]
+            );
+
+            if ($validator->fails()) {
+                $messages = $validator->getMessageBag();
+                return redirect()->back()->with('error', $messages->first());
+            }
+
+            $invoice = Invoice::find($id);
+            if (!$invoice) {
+                return redirect()->back()->with('error', __('Invoice not found.'));
+            }
+
+            $invoice->discount_apply = $request->discount_apply;
+            $invoice->save();
+
+            return redirect()->back()->with('success', __('Discount successfully updated.'));
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
     }
 }

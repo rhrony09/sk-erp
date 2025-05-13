@@ -15,7 +15,7 @@ class BankTransferController extends Controller
 
         if(\Auth::user()->can('manage bank transfer'))
         {
-            $account = BankAccount::get()->pluck('holder_name', 'id');
+            $account = BankAccount::get()->pluck('bank_name', 'id');
             $account->prepend('Select Account', '');
 
             $query = BankTransfer::where('created_by', '=', \Auth::user()->creatorId());

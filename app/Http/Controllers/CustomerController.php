@@ -97,6 +97,7 @@ class CustomerController extends Controller
 
             $rules = [
                 'name' => 'required',
+                'email' => 'required|email|unique:users,email',
                 'contact' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|unique:customers,contact',
             ];
 
@@ -112,18 +113,23 @@ class CustomerController extends Controller
 
             $userpassword               = $request->input('password');
             $role = Role::findByName('client');
-            $client = User::create(
-                [
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => !empty($userpassword) ? \Hash::make($userpassword) : \Hash::make(12345678),
-                    'type' => 'client',
-                    'lang' => 'en',
-                    'created_by' => $objCustomer->creatorId(),
-                    'is_enable_login' => 1,
-                ]
-            );
-            $client->assignRole($role);
+            
+            try {
+                $client = User::create(
+                    [
+                        'name' => $request->name,
+                        'email' => $request->email,
+                        'password' => !empty($userpassword) ? \Hash::make($userpassword) : \Hash::make(12345678),
+                        'type' => 'client',
+                        'lang' => 'en',
+                        'created_by' => $objCustomer->creatorId(),
+                        'is_enable_login' => 1,
+                    ]
+                );
+                $client->assignRole($role);
+            } catch (\Exception $e) {
+                return redirect()->route('customer.index')->with('error', __('Email already exists. Please use a different email.'));
+            }
 
             $creator        = User::find($objCustomer->creatorId());
             $total_customer = $objCustomer->countCustomers();

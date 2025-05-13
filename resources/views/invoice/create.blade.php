@@ -192,6 +192,47 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Subtotal Calculation Table and Discount Option -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <!-- Space for any additional information -->
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-none border">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold">Subtotal</td>
+                                        <td class="text-end" id="subtotal-amount">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Discount</label>
+                                                <input type="number" name="discount_apply" id="discount_apply" class="form-control" value="0" min="0" step="0.01">
+                                            </div>
+                                        </td>
+                                        <td class="text-end" id="discount-amount">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Tax</td>
+                                        <td class="text-end" id="tax-amount">0.00</td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td class="fw-bold fs-5">Total Amount</td>
+                                        <td class="text-end fw-bold fs-5" id="total-amount">0.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="d-flex justify-content-between mt-3">
             <div>
                 <button type="button" class="btn btn-outline-secondary me-2">Cancel</button>
@@ -210,15 +251,56 @@
         // Counter for dynamic product rows
         let productRowCounter = 1;
 
-        // Function to calculate amount after discount
+        // Function to calculate amount after discount for a row
         function calculateAmount(row) {
             const quantity = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
             const price = parseFloat(row.find('input[name*="[price]"]').val()) || 0;
             const discount = parseFloat(row.find('input[name*="[discount]"]').val()) || 0;
+            const tax = parseFloat(row.find('input[name*="[tax]"]').val()) || 0;
             
-            const total = (price * quantity) - discount;
+            const subtotal = price * quantity;
+            const taxAmount = subtotal * (tax / 100);
+            const total = subtotal - discount + taxAmount;
             row.find('td:last').prev().text(total.toFixed(2));
+            
+            // Update the summary table whenever an item changes
+            updateSummaryTable();
         }
+        
+        // Function to calculate invoice summary totals
+        function updateSummaryTable() {
+            let subtotal = 0;
+            let totalTax = 0;
+            let totalItemDiscount = 0;
+            
+            // Calculate from all rows
+            $('#productTableBody tr').each(function() {
+                const quantity = parseFloat($(this).find('input[name*="[quantity]"]').val()) || 0;
+                const price = parseFloat($(this).find('input[name*="[price]"]').val()) || 0;
+                const discount = parseFloat($(this).find('input[name*="[discount]"]').val()) || 0;
+                const tax = parseFloat($(this).find('input[name*="[tax]"]').val()) || 0;
+                
+                const rowSubtotal = price * quantity;
+                subtotal += rowSubtotal;
+                totalItemDiscount += discount;
+                totalTax += rowSubtotal * (tax / 100);
+            });
+            
+            // Get additional discount
+            const additionalDiscount = parseFloat($('#discount_apply').val()) || 0;
+            const totalDiscount = additionalDiscount; // Just using the additional discount for now
+            
+            // Update the summary table
+            $('#subtotal-amount').text(subtotal.toFixed(2));
+            $('#discount-amount').text(totalDiscount.toFixed(2));
+            $('#tax-amount').text(totalTax.toFixed(2));
+            $('#total-amount').text((subtotal - totalDiscount + totalTax).toFixed(2));
+        }
+
+        // Add event listener for the additional discount field
+        $('#discount_apply').on('input', function() {
+            updateSummaryTable();
+        });
 
         // Add event listener for search type change
         $('select[name="type"]').on('change', function() {
@@ -357,6 +439,9 @@
             initializeProductSelect(`#product_id_${productRowCounter}`, productRowCounter);
 
             productRowCounter++;
+            
+            // Update the summary table when adding a row
+            updateSummaryTable();
         });
 
         // Handle row removal
@@ -365,6 +450,9 @@
             if (rowCount > 1) {
                 $(this).closest('tr').remove();
                 productRowCounter--;
+                
+                // Update the summary table when removing a row
+                updateSummaryTable();
             }
         });
 
@@ -372,6 +460,9 @@
         $('#productTableBody tr').each(function() {
             calculateAmount($(this));
         });
+        
+        // Initialize summary table on page load
+        updateSummaryTable();
     });
 </script>
 @endsection

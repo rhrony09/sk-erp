@@ -128,8 +128,8 @@
                                 <ul>
                                     <li><a href="/" class="text-white">HOME</a></li>
                                     
-                                    <li><a href="#" class="text-white">ABOUT</a></li>
-                                    <li><a href="#" class="text-white">BLOG</a></li>
+                                    <li><a href="{{ route('ecommerce.about') }}" class="text-white">ABOUT</a></li>
+                                    <li><a href="{{route('ecommerce.blog.list')}}" class="text-white">BLOG</a></li>
                                     <li><a href="contact-us.html" class="text-white">CONTACT US</a></li>
                                 </ul>
                             </nav>

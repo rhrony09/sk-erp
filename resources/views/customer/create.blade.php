@@ -6,13 +6,13 @@
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{ Form::label('name', __('Name'), ['class' => 'form-label']) }}
-                {{ Form::text('name', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Name')]) }}
+                {{ Form::text('name', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Name'), 'id' => 'customer_name']) }}
             </div>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{ Form::label('contact', __('Contact'), ['class' => 'form-label']) }}
-                {{ Form::text('contact', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Contact')]) }}
+                {{ Form::text('contact', null, ['class' => 'form-control', 'required' => 'required', 'placeholder' => __('Enter Contact'), 'id' => 'customer_contact']) }}
             </div>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-6">
@@ -43,18 +43,18 @@
         @endif
     </div>
 
-    <h6 class="sub-title">{{ __('Billing Address') }}</h6>
+    <h6 class="sub-title">{{ __('Address') }}</h6>
     <div class="row">
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{ Form::label('billing_name', __('Name'), ['class' => '', 'class' => 'form-label']) }}
-                {{ Form::text('billing_name', null, ['class' => 'form-control', 'placeholder' => __('Enter Name')]) }}
+                {{ Form::text('billing_name', null, ['class' => 'form-control', 'placeholder' => __('Enter Name'), 'id' => 'billing_name']) }}
             </div>
         </div>
         <div class="col-lg-6 col-md-6 col-sm-6">
             <div class="form-group">
                 {{ Form::label('billing_phone', __('Phone'), ['class' => 'form-label']) }}
-                {{ Form::text('billing_phone', null, ['class' => 'form-control', 'placeholder' => __('Enter Phone')]) }}
+                {{ Form::text('billing_phone', null, ['class' => 'form-control', 'placeholder' => __('Enter Phone'), 'id' => 'billing_phone']) }}
             </div>
         </div>
         <div class="col-md-12">
@@ -93,7 +93,7 @@
         </div>
 
     </div>
-
+<!-- 
     @if (App\Models\Utility::getValByName('shipping_display') == 'on')
         <div class="col-md-12 text-end">
             <input type="button" id="billing_data" value="{{ __('Shipping Same As Billing') }}" class="btn btn-primary">
@@ -203,11 +203,26 @@
                 });
             });
         </script>
-    @endif
+    @endif -->
 
 </div>
 <div class="modal-footer">
     <input type="button" value="{{ __('Cancel') }}" class="btn btn-light" data-bs-dismiss="modal">
     <input type="submit" value="{{ __('Create') }}" class="btn btn-primary">
 </div>
+
+<script>
+    $(document).ready(function() {
+        // Auto-fill billing name when customer name changes
+        $('#customer_name').on('input', function() {
+            $('#billing_name').val($(this).val());
+        });
+        
+        // Auto-fill billing phone when customer contact changes
+        $('#customer_contact').on('input', function() {
+            $('#billing_phone').val($(this).val());
+        });
+    });
+</script>
+
 {{ Form::close() }}

@@ -23,7 +23,7 @@ class RevenueController extends Controller
             $customer = Customer::get()->pluck('name', 'id');
             $customer->prepend('Select Customer', '');
 
-            $account = BankAccount::get()->pluck('holder_name', 'id');
+            $account = BankAccount::get()->pluck('bank_name', 'id');
             $account->prepend('Select Account', '');
 
             $category = ProductServiceCategory::where('type', '=','income')->get()->pluck('name', 'id');

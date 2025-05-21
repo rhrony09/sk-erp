@@ -153,6 +153,7 @@ use App\Http\Controllers\ProvidentFundController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\TrainingTypeController;
+// use App\Http\Controllers\EmailController;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Route;
 
@@ -183,6 +184,7 @@ Route::name('ecommerce.')->group(function () {
     Route::put('/accountUpdate', action: [ProfileController::class, 'accountUpdate'])->name('accountUpdate');
     Route::post('/updateBilling', action: [ProfileController::class, 'updateBilling'])->name('updateBilling');
     Route::post('/updateShipping', action: [ProfileController::class, 'updateShipping'])->name('updateShipping');
+    Route::get('/about', [PageController::class, 'about'])->name('about');
 
     Route::get('/products/{slug}', [ProductController::class,'categoryProducts'])->name('categoryProducts');
     Route::get('/get-products/{id}', [ProductController::class,'getCategoryProducts'])->name('getCategoryProducts');
@@ -233,7 +235,7 @@ Route::group(['prefix'=> 'erp'], function () {
     Route::get('purchase/return', [PurchaseReturnController::class, 'index'])->name('purchase.return');
     Route::post('purchase/return', [PurchaseReturnController::class, 'store'])->name('purchase.return.store');
 
-
+    Route::get('blog-manage', [\App\Http\Controllers\Ecommerce\BlogController::class, 'blogList'])->name('blog.blogList');
 //
 //Route::get('/', ['as' => 'home','uses' =>'HomeController@index'])->middleware(['XSS']);
 //Route::get('/home', ['as' => 'home','uses' =>'HomeController@index'])->middleware(['auth','XSS']);
@@ -369,7 +371,7 @@ Route::put('productservice/raw_material/{id}/update', [RawMaterialController::cl
 Route::delete('productservice/raw_material/{id}/destroy', [RawMaterialController::class, 'destroy'])->name('productservice.raw_material.destroy')->middleware(['auth', 'XSS']);
 
 // customer_services
-// Route::get('customer_services/index', [CustomerServiceController::class, 'index'])->name('customer_services.index');
+Route::get('customer_services/list', [CustomerServiceController::class, 'serviceList'])->name('customer_services.serviceList');
 // Route::get('customer_services/create', [CustomerServiceController::class, 'create'])->name('customer_services.create');
 // Route::post('customer_services/store', [CustomerServiceController::class, 'store'])->name('customer_services.store');
 Route::resource('customer_services', CustomerServiceController::class)->middleware(['auth', 'XSS', 'revalidate']);
@@ -392,6 +394,7 @@ Route::group(
     ], function () {
         Route::get('customer/{id}/show', [CustomerController::class, 'show'])->name('customer.show');
         Route::resource('customer', CustomerController::class);
+        Route::get('fetch-customers', [CustomerController::class, 'fetchCustomers'])->name('customer.fetch');
     }
 );
 Route::group(
@@ -1737,4 +1740,44 @@ Route::prefix('ecommerce')->name('ecommerce.')->group(function () {
     Route::get('banners/{banner}/edit', [\App\Http\Controllers\Ecommerce\BannerController::class, 'edit'])->name('banners.edit');
     Route::put('banners/{banner}', [\App\Http\Controllers\Ecommerce\BannerController::class, 'update'])->name('banners.update');
     Route::delete('banners/{banner}', [\App\Http\Controllers\Ecommerce\BannerController::class, 'destroy'])->name('banners.destroy');
+    
+    // Blog routes for frontend visitors
+    Route::get('blogs', [\App\Http\Controllers\Ecommerce\BlogController::class, 'index'])->name('blog.list');
+    Route::get('blog/{slug}', [\App\Http\Controllers\Ecommerce\BlogController::class, 'show'])->name('blog.show');
+    
+    // Blog management routes (admin)
+    Route::group(['middleware' => ['auth', 'XSS']], function () {
+        Route::resource('blog', \App\Http\Controllers\Ecommerce\BlogController::class)->except(['show']);
+        
+        // Blog related products
+        Route::get('blog/{blogId}/products', [\App\Http\Controllers\Ecommerce\BlogRelatedProductController::class, 'manageBlogProducts'])
+            ->name('blog.products.manage');
+        Route::post('blog-related-products/add-multiple', [\App\Http\Controllers\Ecommerce\BlogRelatedProductController::class, 'addMultipleProducts'])
+            ->name('blog.related.add-multiple');
+        Route::post('blog-related-products/add', [\App\Http\Controllers\Ecommerce\BlogRelatedProductController::class, 'addProduct'])
+            ->name('blog.related.add');
+        Route::post('blog-related-products/remove', [\App\Http\Controllers\Ecommerce\BlogRelatedProductController::class, 'removeProduct'])
+            ->name('blog.related.remove');
+        Route::post('blog-related-products/order', [\App\Http\Controllers\Ecommerce\BlogRelatedProductController::class, 'updateOrder'])
+            ->name('blog.related.order');
+        Route::get('blog-related-products/{blogId}', [\App\Http\Controllers\Ecommerce\BlogRelatedProductController::class, 'getRelatedProducts'])
+            ->name('blog.related.get');
+    });
+});
+
+// Email Management Routes
+// Route::get('email/index', [EmailController::class, 'index'])->name('email.index')->middleware(['auth', 'XSS', 'revalidate']);
+// Route::get('email/create', [EmailController::class, 'create'])->name('email.create')->middleware(['auth', 'XSS', 'revalidate']);
+// Route::post('email/store', [EmailController::class, 'store'])->name('email.store')->middleware(['auth', 'XSS', 'revalidate']);
+// Route::get('email/{email}', [EmailController::class, 'show'])->name('email.show')->middleware(['auth', 'XSS', 'revalidate']);
+// Route::post('email/{email}/resend', [EmailController::class, 'resend'])->name('email.resend')->middleware(['auth', 'XSS', 'revalidate']);
+
+// Blog Management Routes (Admin)
+Route::prefix('blogs')->name('blogs.')->middleware(['auth', 'XSS', 'revalidate'])->group(function () {
+    Route::get('/', [App\Http\Controllers\Ecommerce\BlogController::class, 'index'])->name('index');
+    Route::get('/create', [App\Http\Controllers\Ecommerce\BlogController::class, 'create'])->name('create');
+    Route::post('/', [App\Http\Controllers\Ecommerce\BlogController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [App\Http\Controllers\Ecommerce\BlogController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [App\Http\Controllers\Ecommerce\BlogController::class, 'update'])->name('update');
+    Route::delete('/{id}', [App\Http\Controllers\Ecommerce\BlogController::class, 'destroy'])->name('destroy');
 });

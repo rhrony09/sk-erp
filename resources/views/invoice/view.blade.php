@@ -239,7 +239,7 @@
                     <div class="card ">
                     <div class="card-body">
                         <div class="row timeline-wrapper">
-                            <div class="col-md-6 col-lg-4 col-xl-4 create_invoice">
+                            <div class="col-md-6 create_invoice">
                                 <div class="timeline-icons"><span class="timeline-dots"></span>
                                     <i class="ti ti-plus text-primary"></i>
                                 </div>
@@ -249,7 +249,7 @@
                                     <a href="{{ route('invoice.edit',\Crypt::encrypt($invoice->id)) }}" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" data-original-title="{{__('Edit')}}"><i class="ti ti-pencil mr-2"></i>{{__('Edit')}}</a>
                                 @endcan
                             </div>
-                            <div class="col-md-6 col-lg-4 col-xl-4 send_invoice">
+                            <!-- <div class="col-md-6 col-lg-4 col-xl-4 send_invoice">
                                 <div class="timeline-icons"><span class="timeline-dots"></span>
                                     <i class="ti ti-mail text-warning"></i>
                                 </div>
@@ -269,18 +269,16 @@
                                         <a href="{{ route('invoice.sent',$invoice->id) }}" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" data-original-title="{{__('Mark Sent')}}"><i class="ti ti-send mr-2"></i>{{__('Send')}}</a>
                                     @endcan
                                 @endif
-                            </div>
-                            <div class="col-md-6 col-lg-4 col-xl-4 create_invoice">
+                            </div> -->
+                            <div class="col-md-6 create_invoice">
                                 <div class="timeline-icons"><span class="timeline-dots"></span>
                                     <i class="ti ti-report-money text-info"></i>
                                 </div>
                                 <h6 class="text-info my-3">{{__('Get Paid')}}</h6>
                                 <p class="text-muted text-sm mb-3">{{__('Status')}} : {{__('Awaiting payment')}}</p>
-                                @if($invoice->status!=0 || $invoice->customer_id == 0)
-                                    @can('create payment invoice')
-                                        <a href="#" data-url="{{ route('invoice.payment',$invoice->id) }}" data-ajax-popup="true" data-title="{{__('Add Payment')}}" class="btn btn-sm btn-info" data-original-title="{{__('Add Payment')}}"><i class="ti ti-report-money mr-2"></i>{{__('Add Payment')}}</a> <br>
+                                @can('create payment invoice')
+                                        <a href="#" data-url="{{ route('invoice.payment',$invoice->id) }}" data-ajax-popup="true" data-title="{{__('Add Payment')}}" class="btn btn-sm btn-info" data-original-title="{{__('Add Payment')}}"><i class="ti ti-report-money mr-2"></i>{{__('Recieve')}}</a> <br>
                                     @endcan
-                                @endif
 
                             </div>
                         </div>
@@ -358,14 +356,12 @@
                                     <div class="col">
                                         <small class="font-style">
                                             <strong>{{__('Billed To')}} :</strong><br>
-                                            @if(!empty($customer->billing_name))
-                                                {{!empty($customer->billing_name)?$customer->billing_name:''}}<br>
-                                                {{!empty($customer->billing_address)?$customer->billing_address:''}}<br>
-                                                {{!empty($customer->billing_city)?$customer->billing_city:'' .', '}}<br>
-                                                {{!empty($customer->billing_state)?$customer->billing_state:'',', '}},
-                                                {{!empty($customer->billing_zip)?$customer->billing_zip:''}}<br>
-                                                {{!empty($customer->billing_country)?$customer->billing_country:''}}<br>
-                                                {{!empty($customer->billing_phone)?$customer->billing_phone:''}}<br>
+                                            @if(!empty($invoiceAddress->billing_address_line_1))
+                                                {{!empty($invoiceAddress->billing_address_line_1)?$invoiceAddress->billing_address_line_1:''}}<br>
+                                                {{!empty($invoiceAddress->billing_address_line_2)?$invoiceAddress->billing_address_line_2:''}}<br>
+                                                {{!empty($invoiceAddress->billing_city)?$invoiceAddress->billing_city:'' .', '}}<br>
+                                                {{!empty($invoiceAddress->billing_state)?$invoiceAddress->billing_state:'',', '}},
+                                                {{!empty($invoiceAddress->billing_zip_code)?$invoiceAddress->billing_zip_code:''}}<br>
                                                 @if($settings['vat_gst_number_switch'] == 'on')
                                                     <strong>{{__('Tax Number ')}} : </strong>{{!empty($customer->tax_number)?$customer->tax_number:''}}
                                                 @endif
@@ -380,14 +376,12 @@
                                     <div class="col ">
                                         <small>
                                             <strong>{{__('Shipped To')}} :</strong><br>
-                                            @if(!empty($customer->shipping_name))
-                                                {{!empty($customer->shipping_name)?$customer->shipping_name:''}}<br>
-                                                {{!empty($customer->shipping_address)?$customer->shipping_address:''}}<br>
-                                                {{!empty($customer->shipping_city)?$customer->shipping_city:'' . ', '}}<br>
-                                                {{!empty($customer->shipping_state)?$customer->shipping_state:'' .', '}},
-                                                {{!empty($customer->shipping_zip)?$customer->shipping_zip:''}}<br>
-                                                {{!empty($customer->shipping_country)?$customer->shipping_country:''}}<br>
-                                                {{!empty($customer->shipping_phone)?$customer->shipping_phone:''}}<br>
+                                            @if(!empty($invoiceAddress->shipping_address_line_1))
+                                                {{!empty($invoiceAddress->shipping_address_line_1)?$invoiceAddress->shipping_address_line_1:''}}<br>
+                                                {{!empty($invoiceAddress->shipping_address_line_2)?$invoiceAddress->shipping_address_line_2:''}}<br>
+                                                {{!empty($invoiceAddress->shipping_state)?$invoiceAddress->shipping_state:'' .', '}},
+                                                {{!empty($invoiceAddress->shipping_zip_code)?$invoiceAddress->shipping_zip_code:''}}<br>
+                                                {{!empty($invoiceAddress->shipping_phone)?$invoiceAddress->shipping_phone:''}}<br>
                                             @else
                                                 -
                                             @endif

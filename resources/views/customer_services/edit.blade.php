@@ -63,7 +63,7 @@
         <div class="col-md-12">
             <div class="form-group">
                 {{ Form::label('service_charge', __('Service Charge'), ['class' => 'form-label']) }}
-                {{ Form::number('service_charge', '', ['class' => 'form-control', 'step' => '0.01']) }}
+                {{ Form::number('service_charge', $customer_service->service_charge, ['class' => 'form-control', 'step' => '0.01']) }}
             </div>
         </div>
 

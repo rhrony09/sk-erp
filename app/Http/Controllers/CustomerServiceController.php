@@ -19,20 +19,118 @@ class CustomerServiceController extends Controller
 {
     public function index(Request $request)
     {
-
         if (\Auth::user()->can('manage customer services')) {
             if (Auth::user()->type == 'client') {
                 $services = CustomerService::where('customer_id', '=', \Auth::user()->customer->id)->get();
+                
+                // Stats for client
+                $stats = [
+                    'pending' => $services->where('status', 0)->count(),
+                    'completed' => $services->where('status', 4)->count(),
+                    'paid' => $services->where('is_paid', 1)->count(),
+                    'unpaid' => $services->where('is_paid', 0)->count(),
+                ];
             } else {
                 $services = CustomerService::all();
+                
+                // Stats for admin
+                $stats = [
+                    'pending' => CustomerService::where('status', 0)->count(),
+                    'completed' => CustomerService::where('status', 4)->count(),
+                    'paid' => CustomerService::where('is_paid', 1)->count(),
+                    'unpaid' => CustomerService::where('is_paid', 0)->count(),
+                    'in_progress' => CustomerService::where('status', 2)->count(),
+                    'on_hold' => CustomerService::where('status', 3)->count(),
+                ];
             }
 
             $products = ProductService::get()->pluck('name', 'id');
 
-            return view('customer_services.index', compact('services', 'products'));
+            return view('customer_services.index', compact('services', 'products', 'stats'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+    }
+
+    public function serviceList(Request $request)
+    {
+        if (!Auth::user()->can('manage customer services')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        $query = CustomerService::query();
+
+        // Search by customer name or service description
+        if ($request->has('search') && $request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('customer', function($q2) use ($search) {
+                    $q2->where('name', 'like', "%$search%");
+                })
+                ->orWhere('description', 'like', "%$search%");
+            });
+        }
+
+        // Filter by due_date (exact or range)
+        if ($request->has('due_date') && $request->due_date) {
+            // Accepts either a single date or a range (start|end)
+            $dates = explode('|', $request->due_date);
+            if (count($dates) == 2) {
+                $query->whereBetween('due_date', [$dates[0], $dates[1]]);
+            } else {
+                $query->whereDate('due_date', $dates[0]);
+            }
+        }
+
+        // Priority ordering logic:
+        // 1. Today's services that are not completed (most urgent)
+        // 2. Expired services that are not completed (overdue)
+        // 3. All other services
+        $today = date('Y-m-d');
+        $query->orderByRaw("
+            CASE 
+                WHEN due_date = ? AND status != 4 THEN 1
+                WHEN due_date < ? AND status != 4 THEN 2
+                ELSE 3
+            END ASC", [$today, $today]);
+            
+        // Secondary sorting by due date (more recent first for upcoming tasks, oldest first for overdue)
+        $query->orderByRaw("
+            CASE 
+                WHEN due_date >= ? THEN due_date
+                ELSE NULL
+            END ASC,
+            CASE
+                WHEN due_date < ? THEN due_date
+                ELSE NULL
+            END ASC
+        ", [$today, $today]);
+
+        $perPage = $request->get('per_page', 10);
+        $services = $query->with(['customer', 'employee'])->paginate($perPage);
+
+        // Get stats for the dashboard
+        if (Auth::user()->type == 'client') {
+            $customerServices = CustomerService::where('customer_id', '=', \Auth::user()->customer->id)->get();
+            
+            $stats = [
+                'pending' => $customerServices->where('status', 0)->count(),
+                'completed' => $customerServices->where('status', 4)->count(),
+                'paid' => $customerServices->where('is_paid', 1)->count(),
+                'unpaid' => $customerServices->where('is_paid', 0)->count(),
+            ];
+        } else {
+            $stats = [
+                'pending' => CustomerService::where('status', 0)->count(),
+                'completed' => CustomerService::where('status', 4)->count(),
+                'paid' => CustomerService::where('is_paid', 1)->count(),
+                'unpaid' => CustomerService::where('is_paid', 0)->count(),
+                'in_progress' => CustomerService::where('status', 2)->count(),
+                'on_hold' => CustomerService::where('status', 3)->count(),
+            ];
+        }
+
+        return response()->json(array_merge($services->toArray(), ['stats' => $stats]));
     }
 
 
@@ -98,11 +196,11 @@ class CustomerServiceController extends Controller
                 $customerService->created_by          = \Auth::user()->creatorId();
             }
             $customerService->save();
-            if (\Auth::user()->type != 'client') {
-                if ($customerService->employee->email != null) {
-                    Mail::to($customerService->employee->email)->send(new EmployeeServiceNotification($customerService));
-                }
-            }
+            // if (\Auth::user()->type != 'client') {
+            //     if ($customerService->employee->email != null) {
+            //         Mail::to($customerService->employee->email)->send(new EmployeeServiceNotification($customerService));
+            //     }
+            // }
             return redirect()->route('customer_services.index')->with('success', __('Customer Service successfully created.'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
@@ -112,7 +210,7 @@ class CustomerServiceController extends Controller
 
     public function show($id)
     {
-        $customer_service = CustomerService::find($id);
+        $customer_service = CustomerService::with('service_products.product')->find($id);
 
         return view('customer_services.detail', compact('customer_service'));
     }
@@ -123,16 +221,12 @@ class CustomerServiceController extends Controller
         $customer_service = CustomerService::find($id);
 
         if (\Auth::user()->can('edit customer services')) {
-            if ($customer_service->created_by == \Auth::user()->creatorId()) {
-                $customers = Customer::get()->pluck('name', 'id');
-                $customers->prepend('Select Customer', '');
-                $employees = Employee::all()->pluck('name', 'id');
-                $employees->prepend('Select Employee', '');
+            $customers = Customer::get()->pluck('name', 'id');
+            $customers->prepend('Select Customer', '');
+            $employees = Employee::all()->pluck('name', 'id');
+            $employees->prepend('Select Employee', '');
 
-                return view('customer_services.edit', compact('customer_service', 'customers', 'employees'));
-            } else {
-                return response()->json(['error' => __('Permission denied.')], 401);
-            }
+            return view('customer_services.edit', compact('customer_service', 'customers', 'employees'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -276,10 +370,10 @@ class CustomerServiceController extends Controller
         if (\Auth::user()->can('edit customer services')) {
 
             $rules = [
-                'product_id' => 'required|array|min:1',
-                'product_id.*' => 'required|exists:product_services,id',
-                'quantity' => 'required|array|min:1',
-                'quantity.*' => 'required|numeric|min:0.01'
+                'product_id' => 'array|min:1',
+                'product_id.*' => 'exists:product_services,id',
+                'quantity' => 'array|min:1',
+                'quantity.*' => 'numeric|min:0.01'
             ];
 
             $validator = \Validator::make($request->all(), $rules);
@@ -296,14 +390,16 @@ class CustomerServiceController extends Controller
 
             ServiceProduct::where('service_id', $id)->delete();
 
-            foreach ($request->product_id as $key => $product_id) {
-                $service_product                     = new ServiceProduct();
-                $service_product->service_id         = $id;
-                $service_product->product_id         = $product_id;
-                $service_product->quantity           = $request->quantity[$key];
-                $service_product->save();
+            if ($request->product_id) {
+                foreach ($request->product_id as $key => $product_id) {
+                    $service_product                     = new ServiceProduct();
+                    $service_product->service_id         = $id;
+                    $service_product->product_id         = $product_id;
+                    $service_product->quantity           = $request->quantity[$key];
+                    $service_product->save();
 
-                $product_price += $request->quantity[$key] * ProductService::find($product_id)->sale_price;
+                    $product_price += $request->quantity[$key] * ProductService::find($product_id)->sale_price;
+                }
             }
 
             $service = CustomerService::find($id);

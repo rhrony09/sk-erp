@@ -145,11 +145,11 @@ class CustomerController extends Controller
             $customer->email           = $request->email;
             $customer->tax_number      = $request->tax_number;
             $customer->created_by      = \Auth::user()->creatorId();
-            $customer->billing_name    = $request->billing_name;
+            $customer->billing_name    = $request->billing_name ?? $request->name;
             $customer->billing_country = $request->billing_country;
             $customer->billing_state   = $request->billing_state;
             $customer->billing_city    = $request->billing_city;
-            $customer->billing_phone   = $request->billing_phone;
+            $customer->billing_phone   = $request->billing_phone ?? $request->contact;
             $customer->billing_zip     = $request->billing_zip;
             $customer->billing_address = $request->billing_address;
 

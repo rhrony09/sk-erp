@@ -23,7 +23,7 @@ class PaymentController extends Controller
             $vender = Vender::get()->pluck('name', 'id');
             $vender->prepend('Select Vendor', '');
 
-            $account = BankAccount::get()->pluck('holder_name', 'id');
+            $account = BankAccount::get()->pluck('bank_name', 'id');
             $account->prepend('Select Account', '');
 
             $category = ProductServiceCategory::where('type', '=', 'expense')->get()->pluck('name', 'id');
@@ -90,8 +90,6 @@ class PaymentController extends Controller
 
     public function store(Request $request)
     {
-
-//        dd($request->all());
 
         if(\Auth::user()->can('create payment'))
         {
@@ -207,7 +205,7 @@ class PaymentController extends Controller
             $venders->prepend('--', 0);
             $categories = ProductServiceCategory::get()->where('type', '=', 'expense')->pluck('name', 'id');
 
-            $accounts = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $accounts = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->get()->pluck('name', 'id');
 
             return view('payment.edit', compact('venders', 'categories', 'accounts', 'payment'));
         }

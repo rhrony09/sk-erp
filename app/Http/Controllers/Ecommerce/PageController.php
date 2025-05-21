@@ -40,4 +40,9 @@ class PageController extends Controller
 
         return view('ecommerce.account.order-details',compact('order'));
     }
+    
+    public function about()
+    {
+        return view('ecommerce.pages.about');
+    }
 }

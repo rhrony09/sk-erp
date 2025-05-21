@@ -49,6 +49,11 @@ class Invoice extends Model
         return $this->hasOne('App\Models\Customer', 'id', 'customer_id');
     }
 
+    public function address()
+    {
+        return $this->hasOne('App\Models\InvoiceAddress', 'invoice_id', 'id');
+    }
+
     public function getSubTotal()
     {
         $subTotal = 0;

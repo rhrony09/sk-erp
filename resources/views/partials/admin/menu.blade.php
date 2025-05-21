@@ -1331,6 +1331,11 @@
                                 <a class="dash-link"
                                     href="{{ route('ecommerce.banners') }}">Banners</a>
                             </li>
+                            <li
+                                class="dash-item {{ Request::route()->getName() == 'customer_services.index' || Request::route()->getName() == 'customer_services.show' ? ' active' : '' }}">
+                                <a class="dash-link"
+                                    href="{{ route('blog.blogList') }}">Blogs</a>
+                            </li>
                         </ul>
                     </li>
                 <!--------------------- End Ecommerce Managaement System----------------------------------->

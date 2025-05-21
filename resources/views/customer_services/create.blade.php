@@ -19,9 +19,7 @@
             <div class="form-group col-md-6">
                 {{ Form::label('customer_id', __('Customer'), ['class' => 'form-label']) }}
                 <select name="customer_id" class="form-control select2" id="select" required>
-                    @foreach ($customers as $key => $customer)
-                        <option value="{{ $key }}" class="subAccount">{{ $customer }}</option>
-                    @endforeach
+                    <option value="">{{ __('Select Customer') }}</option>
                 </select>
             </div>
             <div class="form-group col-md-6">

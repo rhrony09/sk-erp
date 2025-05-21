@@ -1,4 +1,9 @@
 <div class="modal-body">
+    <style>
+        .choices__list{
+            z-index: 99999;
+        }
+    </style>
     <div class="card ">
         <div class="card-header card-body table-border-style">
             <h5> {{ __('Service Products') }}</h5>
@@ -17,7 +22,7 @@
                     <div class="col-md-4">
                         {{ Form::label('quantity', __('Quantity'), ['class' => 'form-label']) }}<span
                             class="text-danger">*</span>
-                        {{ Form::number('quantity[]', $service_product->quantity, ['class' => 'form-control', 'id' => 'quantity1', 'required' => 'required', 'step' => '0.01']) }}
+                        {{ Form::number('quantity[]', $service_product->quantity, ['class' => 'form-control', 'id' => 'quantity1', 'required' => 'required']) }}
                     </div>
                     <div class="col-md-4 pt-4">
                         <div class="form-group mt-2">
@@ -38,7 +43,7 @@
                     <div class="col-md-4">
                         {{ Form::label('quantity', __('Quantity'), ['class' => 'form-label']) }}<span
                             class="text-danger">*</span>
-                        {{ Form::number('quantity[]', null, ['class' => 'form-control', 'id' => 'quantity1', 'required' => 'required', 'step' => '0.01']) }}
+                        {{ Form::number('quantity[]', null, ['class' => 'form-control', 'id' => 'quantity1', 'required' => 'required']) }}
                     </div>
                     <div class="col-md-4 pt-4">
                         <div class="form-group mt-2">
@@ -52,7 +57,7 @@
             @endforelse
             <div class="row">
                 <div class="col-md-12">
-                    {{ Form::submit(__('Add'), ['class' => 'btn btn-primary']) }}
+                    {{ Form::submit(__('Save'), ['class' => 'btn btn-primary']) }}
                 </div>
             </div>
             {{ Form::close() }}

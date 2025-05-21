@@ -93,6 +93,23 @@
                         <td>{{ Carbon\Carbon::parse($customer_service->created_at)->format('d-m-Y') }}</td>
                     </tr>
                 </table>
+
+                <table class="table mt-3">
+                    <thead>
+                        <tr>
+                            <th>{{ __('Product Name') }}</th>
+                            <th>{{ __('Product Quantity') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($customer_service->service_products as $product)
+                            <tr>
+                                <td>{{ $product->product->name }}</td>
+                                <td>{{ $product->quantity }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

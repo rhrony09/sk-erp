@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Schema;
 
 class InvoiceController extends Controller
 {
@@ -41,28 +42,52 @@ class InvoiceController extends Controller
             ->where('model_has_roles.model_type', \App\Models\User::class)
             ->select('roles.name', 'roles.id as role_id')
             ->first();
-
+    
         if (\Auth::user()->can('manage invoice')) {
-
+    
             $customer = Customer::get()->pluck('name', 'id');
             $customer->prepend('Select Customer', '');
-
-            $invoice = Invoice::with('salesman.employee')->get();
-
+    
             $status = Invoice::$statues;
             $branchId = @Auth::user()->employee->branch_id;
-
+    
             if ($branchId && $role->role_id != 10) {
                 $query = Invoice::whereHas('salesman.employee', function ($q) use ($branchId) {
                     $q->where('branch_id', $branchId);
                 });
-            }else{
+            } else {
                 $query = Invoice::query();
             }
-
+    
+            // Apply search filter
+            if (!empty($request->search)) {
+                $searchTerm = $request->search;
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('invoice_id', 'LIKE', "%{$searchTerm}%")
+                      ->orWhereHas('customer', function ($customerQuery) use ($searchTerm) {
+                          $customerQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                          if (Schema::hasColumn('customers', 'contact')) {
+                            $customerQuery->orWhere('contact', 'LIKE', "%{$searchTerm}%");
+                        }
+                      })
+                      ->orWhereHas('salesman', function ($salesmanQuery) use ($searchTerm) {
+                          $salesmanQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                          if (Schema::hasColumn('users', 'contact')) {
+                            $salesmanQuery->orWhere('contact', 'LIKE', "%{$searchTerm}%");
+                        }
+                      })
+                      ->orWhereHas('address', function ($salesmanQuery) use ($searchTerm) {
+                        $salesmanQuery->where('shipping_phone', 'LIKE', "%{$searchTerm}%");
+                    });
+                });
+            }
+    
+            // Apply customer filter
             if (!empty($request->customer)) {
                 $query->where('customer_id', '=', $request->customer);
             }
+            
+            // Apply date filter
             if (count(explode('to', $request->issue_date)) > 1) {
                 $date_range = explode(' to ', $request->issue_date);
                 $query->whereBetween('issue_date', $date_range);
@@ -70,12 +95,44 @@ class InvoiceController extends Controller
                 $date_range = [$request->issue_date, $request->issue_date];
                 $query->whereBetween('issue_date', $date_range);
             }
-
+    
+            // Apply status filter
             if (!empty($request->status)) {
                 $query->where('status', '=', $request->status);
             }
-            $invoices = $query->orderBy('id', 'desc')->get();
-
+    
+            // Custom ordering based on priority
+            $today = now()->format('Y-m-d');
+            
+            // Add pagination with 10 items per page
+            $invoices = $query->with(['salesman.employee', 'customer'])
+                             // Priority ordering:
+                             // 1. Due today AND status != 4 (priority 1)
+                             // 2. Overdue AND status != 4 (priority 2)  
+                             // 3. Status = 4 (priority 3)
+                             // 4. All others (priority 4)
+                             ->orderByRaw("
+                                 CASE 
+                                     WHEN due_date = '{$today}' AND status != 4 THEN 1
+                                     WHEN due_date < '{$today}' AND status != 4 THEN 2  
+                                     WHEN status = 4 THEN 3
+                                     ELSE 4
+                                 END
+                             ")
+                             // Secondary sort by due_date (ascending for overdue, descending for others)
+                             ->orderByRaw("
+                                 CASE 
+                                     WHEN due_date < '{$today}' AND status != 4 THEN due_date
+                                     ELSE 9999-12-31  
+                                 END ASC
+                             ")
+                             // Tertiary sort by ID descending (newest first within same priority)
+                             ->orderBy('id', 'desc')
+                             ->paginate(10);
+    
+            // Append request parameters to pagination links to maintain filters
+            $invoices->appends($request->all());
+    
             return view('invoice.index', compact('invoices', 'customer', 'status'));
         } else {
             return redirect()->back()->with('error', __('Permission Denied.'));
@@ -163,6 +220,22 @@ class InvoiceController extends Controller
             $invoice->created_by = \Auth::user()->creatorId();
             $invoice->salesman_id = \Auth::user()->id;
             $invoice->save();
+            
+            // Save invoice address
+            $invoiceAddress = new \App\Models\InvoiceAddress();
+            $invoiceAddress->invoice_id = $invoice->id;
+            $invoiceAddress->billing_address_line_1 = $request->billing_address_line_1;
+            $invoiceAddress->billing_address_line_2 = $request->billing_address_line_2;
+            $invoiceAddress->billing_city = $request->billing_city;
+            $invoiceAddress->billing_state = $request->billing_state;
+            $invoiceAddress->billing_zip_code = $request->billing_zip_code;
+            $invoiceAddress->shipping_address_line_1 = $request->shipping_address_line_1;
+            $invoiceAddress->shipping_address_line_2 = $request->shipping_address_line_2;
+            $invoiceAddress->shipping_city = $request->shipping_city;
+            $invoiceAddress->shipping_state = $request->shipping_state;
+            $invoiceAddress->shipping_zip_code = $request->shipping_zip_code;
+            $invoiceAddress->save();
+            
             CustomField::saveData($invoice, $request->customField);
             $products = $request->items;
 
@@ -204,6 +277,51 @@ class InvoiceController extends Controller
                 Utility::addProductStock($invoiceProduct->product_id, $invoiceProduct->quantity, $type, $description, $type_id);
             }
 
+            // Handle payment if paid amount is provided
+            $paidAmount = $request->paid_amount ? floatval($request->paid_amount) : 0;
+            if ($paidAmount > 0) {
+                // Check if there's at least one bank account available
+                $bankAccount = BankAccount::first();
+                if (!$bankAccount) {
+                    return redirect()->route('invoice.index', $invoice->id)->with('warning', __('Invoice created successfully, but payment could not be recorded. No bank account available.'));
+                }
+                
+                // Create invoice payment record
+                $invoicePayment = new InvoicePayment();
+                $invoicePayment->invoice_id = $invoice->id;
+                $invoicePayment->date = $request->issue_date; // Use invoice date for payment date
+                $invoicePayment->amount = $paidAmount;
+                $invoicePayment->account_id = $bankAccount->id; // Use the first available bank account
+                $invoicePayment->payment_method = 0;
+                $invoicePayment->reference = $request->payment_reference ?? '';
+                $invoicePayment->description = 'Payment received during invoice creation';
+                $invoicePayment->save();
+
+                // Update invoice status
+                $due = $invoice->getTotal() - $paidAmount;
+                if ($due <= 0) {
+                    $invoice->status = 4; // Paid
+                } else {
+                    $invoice->status = 3; // Partially paid
+                }
+                $invoice->save();
+
+                // Add transaction record
+                $invoicePayment->user_id = $invoice->customer_id;
+                $invoicePayment->user_type = 'Customer';
+                $invoicePayment->type = 'Partial';
+                $invoicePayment->created_by = \Auth::user()->id;
+                $invoicePayment->payment_id = $invoicePayment->id;
+                $invoicePayment->category = 'Invoice';
+                $invoicePayment->account = $invoicePayment->account_id;
+
+                Transaction::addTransaction($invoicePayment);
+
+                // Update user balance
+                Utility::updateUserBalance('customer', $invoice->customer_id, $paidAmount, 'debit');
+                Utility::bankAccountBalance($invoicePayment->account_id, $paidAmount, 'credit');
+            }
+
             return redirect()->route('invoice.index', $invoice->id)->with('success', __('Invoice successfully created.'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
@@ -215,6 +333,7 @@ class InvoiceController extends Controller
         if (\Auth::user()->can('edit invoice')) {
             $id = Crypt::decrypt($ids);
             $invoice = Invoice::find($id);
+            $invoiceAddress = \App\Models\InvoiceAddress::where('invoice_id', $invoice->id)->first();
 
             $invoice_number = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
             $customers = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
@@ -225,7 +344,7 @@ class InvoiceController extends Controller
             $invoice->customField = CustomField::getData($invoice, 'invoice');
             $customFields = CustomField::where('module', '=', 'invoice')->get();
 
-            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields'));
+            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields', 'invoiceAddress'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -259,6 +378,25 @@ class InvoiceController extends Controller
                 $invoice->category_id = $request->category_id;
                 $invoice->discount_apply = $request->discount_apply ?? 0;
                 $invoice->save();
+                
+                // Update or create invoice address
+                $invoiceAddress = \App\Models\InvoiceAddress::where('invoice_id', $invoice->id)->first();
+                if (!$invoiceAddress) {
+                    $invoiceAddress = new \App\Models\InvoiceAddress();
+                    $invoiceAddress->invoice_id = $invoice->id;
+                }
+                
+                $invoiceAddress->billing_address_line_1 = $request->billing_address_line_1;
+                $invoiceAddress->billing_address_line_2 = $request->billing_address_line_2;
+                $invoiceAddress->billing_city = $request->billing_city;
+                $invoiceAddress->billing_state = $request->billing_state;
+                $invoiceAddress->billing_zip_code = $request->billing_zip_code;
+                $invoiceAddress->shipping_address_line_1 = $request->shipping_address_line_1;
+                $invoiceAddress->shipping_address_line_2 = $request->shipping_address_line_2;
+                $invoiceAddress->shipping_city = $request->shipping_city;
+                $invoiceAddress->shipping_state = $request->shipping_state;
+                $invoiceAddress->shipping_zip_code = $request->shipping_zip_code;
+                $invoiceAddress->save();
 
                 Utility::starting_number($invoice->invoice_id + 1, 'invoice');
                 CustomField::saveData($invoice, $request->customField);
@@ -363,7 +501,8 @@ class InvoiceController extends Controller
                 return redirect()->back()->with('error', __('Invoice Not Found.'));
             }
             $id = Crypt::decrypt($ids);
-            $invoice = Invoice::with(['creditNote', 'payments.bankAccount', 'items.product.unit'])->find($id);
+            $invoice = Invoice::with(['creditNote', 'payments.bankAccount', 'items.product.unit', 'customer'])->find($id);
+            $invoiceAddress = \App\Models\InvoiceAddress::where('invoice_id', $invoice->id)->first();
 
             $invoicePayment = InvoicePayment::where('invoice_id', $invoice->id)->first();
 
@@ -373,7 +512,7 @@ class InvoiceController extends Controller
             $invoice->customField = CustomField::getData($invoice, 'invoice');
             $customFields = CustomField::where('module', '=', 'invoice')->get();
 
-            return view('invoice.view', compact('invoice', 'customer', 'iteams', 'invoicePayment', 'customFields', 'user'));
+            return view('invoice.view', compact('invoice', 'customer', 'iteams', 'invoicePayment', 'customFields', 'user', 'invoiceAddress'));
 
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));

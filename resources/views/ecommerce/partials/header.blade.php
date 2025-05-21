@@ -1,3 +1,15 @@
+@php
+    $logo = \App\Models\Utility::get_file('uploads/logo/');
+
+    $company_logo = Utility::getValByName('company_logo_light');
+    $setting = \App\Models\Utility::settings();
+
+    $categories = \App\Models\ProductServiceCategory::where('type', 'product & service')
+    ->select('id', 'name', 'slug', 'type')
+    ->get();
+
+@endphp
+
 <!DOCTYPE html>
 <html class="no-js" lang="en">
 
@@ -12,7 +24,7 @@
     <!-- Page Title -->
 	<title>Sinrato - Mega Shop Electronics ecom Bootstrap 4 Template</title>
 	<!--Fevicon-->
-	<link rel="icon" href="assets/img-ecom/icon/favicon.ico" type="image/x-icon" />
+	<link rel="icon" href="{{ $logo . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png') }}" alt="{{ config('app.name', 'SK Corporation') }}" type="image/x-icon" />
 	<!-- Bootstrap css -->
     <link rel="stylesheet" href="{{asset('assets/css-ecom/bootstrap.min.css')}}">
     <!-- linear-icon -->

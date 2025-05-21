@@ -110,6 +110,55 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-group mb-0">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div>
+                                <label for="billing_address_line_1">Billing Address Line 1</label>
+                                <input type="text" class="form-control mb-2" id="billing_address_line_1" name="billing_address_line_1">
+                            </div>
+                            <div>
+                                <label for="billing_address_line_2">Billing Address Line 2</label>
+                                <input type="text" class="form-control mb-2" id="billing_address_line_2" name="billing_address_line_2">
+                            </div>
+                            <div>
+                                <label for="billing_city">Billing City</label>
+                                <input type="text" class="form-control mb-2" id="billing_city" name="billing_city">
+                            </div>
+                            <div>
+                                <label for="billing_state">Billing State</label>
+                                <input type="text" class="form-control mb-2" id="billing_state" name="billing_state">
+                            </div>
+                            <div>
+                                <label for="billing_zip_code">Billing Zip Code</label>
+                                <input type="text" class="form-control" id="billing_zip_code" name="billing_zip_code">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div>
+                                <label for="shipping_address_line_1">Shipping Address Line 1</label>
+                                <input type="text" class="form-control mb-2" id="shipping_address_line_1" name="shipping_address_line_1">
+                            </div>
+                            <div>
+                                <label for="shipping_address_line_2">Shipping Address Line 2</label>
+                                <input type="text" class="form-control mb-2" id="shipping_address_line_2" name="shipping_address_line_2">
+                            </div>
+                            <div>
+                                <label for="shipping_city">Shipping City</label>
+                                <input type="text" class="form-control mb-2" id="shipping_city" name="shipping_city">
+                            </div>
+                            <div>
+                                <label for="shipping_state">Shipping State</label>
+                                <input type="text" class="form-control mb-2" id="shipping_state" name="shipping_state">
+                            </div>
+                            <div>
+                                <label for="shipping_zip_code">Shipping Zip Code</label>
+                                <input type="text" class="form-control" id="shipping_zip_code" name="shipping_zip_code">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-md-6">
@@ -117,11 +166,11 @@
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label for="issueDate" class="form-label">Issue Date</label>
-                        <input type="date" class="form-control" id="issueDate" name="issue_date">
+                        <input type="date" class="form-control" id="issueDate" name="issue_date" value="{{ date('Y-m-d') }}">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="dueDate" class="form-label">Due Date</label>
-                        <input type="date" class="form-control" id="dueDate" name="due_date">
+                        <input type="date" class="form-control" id="dueDate" name="due_date" value="{{ date('Y-m-d') }}">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="invoiceNumber" class="form-label">Invoice Number</label>
@@ -211,6 +260,24 @@
                                     <tr>
                                         <td class="fw-bold">
                                             <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Paid Amount</label>
+                                                <input type="number" name="paid_amount" id="paid_amount" class="form-control" value="0" min="0" step="0.01">
+                                            </div>
+                                        </td>
+                                        <td class="text-end" id="paid-amount-display">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Payment Reference</label>
+                                                <input type="text" name="payment_reference" id="payment_reference" class="form-control" placeholder="Transaction ID">
+                                            </div>
+                                        </td>
+                                        <td class="text-end">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
                                                 <label class="form-label me-2 mb-0">Discount</label>
                                                 <input type="number" name="discount_apply" id="discount_apply" class="form-control" value="0" min="0" step="0.01">
                                             </div>
@@ -224,6 +291,10 @@
                                     <tr class="border-top">
                                         <td class="fw-bold fs-5">Total Amount</td>
                                         <td class="text-end fw-bold fs-5" id="total-amount">0.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Due Amount</td>
+                                        <td class="text-end fw-bold text-danger" id="due-amount">0.00</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -288,17 +359,24 @@
             
             // Get additional discount
             const additionalDiscount = parseFloat($('#discount_apply').val()) || 0;
+            const paidAmount = parseFloat($('#paid_amount').val()) || 0;
             const totalDiscount = additionalDiscount; // Just using the additional discount for now
+            
+            // Calculate total and due amount
+            const totalAmount = subtotal - totalDiscount + totalTax;
+            const dueAmount = totalAmount - paidAmount;
             
             // Update the summary table
             $('#subtotal-amount').text(subtotal.toFixed(2));
             $('#discount-amount').text(totalDiscount.toFixed(2));
             $('#tax-amount').text(totalTax.toFixed(2));
-            $('#total-amount').text((subtotal - totalDiscount + totalTax).toFixed(2));
+            $('#total-amount').text(totalAmount.toFixed(2));
+            $('#paid-amount-display').text(paidAmount.toFixed(2));
+            $('#due-amount').text(dueAmount.toFixed(2));
         }
 
-        // Add event listener for the additional discount field
-        $('#discount_apply').on('input', function() {
+        // Add event listener for the additional discount field and paid amount
+        $('#discount_apply, #paid_amount').on('input', function() {
             updateSummaryTable();
         });
 

@@ -219,6 +219,7 @@ class InvoiceController extends Controller
             $invoice->discount_apply = $request->discount_apply ?? 0;
             $invoice->created_by = \Auth::user()->creatorId();
             $invoice->salesman_id = \Auth::user()->id;
+            $invoice->footer_text = $request->footer_note;
             $invoice->save();
             
             // Save invoice address
@@ -336,10 +337,10 @@ class InvoiceController extends Controller
             $invoiceAddress = \App\Models\InvoiceAddress::where('invoice_id', $invoice->id)->first();
 
             $invoice_number = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
-            $customers = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'income')->get()->pluck('name', 'id');
+            $customers = Customer::get()->pluck('name', 'id');
+            $category = ProductServiceCategory::where('type', 'income')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
-            $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $product_services = ProductService::get()->pluck('name', 'id');
 
             $invoice->customField = CustomField::getData($invoice, 'invoice');
             $customFields = CustomField::where('module', '=', 'invoice')->get();

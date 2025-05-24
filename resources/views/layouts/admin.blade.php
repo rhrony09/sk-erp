@@ -106,6 +106,7 @@
     <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">
 
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.css">
 
     @stack('css-page')
 </head>

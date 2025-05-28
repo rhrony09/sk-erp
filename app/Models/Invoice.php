@@ -54,9 +54,15 @@ class Invoice extends Model
         return $this->hasOne('App\Models\InvoiceAddress', 'invoice_id', 'id');
     }
 
+    public function customerService()
+    {
+        return $this->hasOne('App\Models\CustomerService', 'invoice_id', 'id');
+    }
+
     public function getSubTotal()
     {
         $subTotal = 0;
+        $subTotal += $this->customerService->service_charge ?? 0;
         foreach($this->items as $product)
         {
 

@@ -308,8 +308,11 @@
                     <div class="all-button-box mr-2">
                         <a href="{{ route('invoice.resent',$invoice->id)}}" class="btn btn-sm btn-primary me-2">{{__('Resend Invoice')}}</a>
                     </div>
+                    <div class="all-button-box mr-2">
+                        <a href="{{ route('invoice.pdf', ['requestType'=>'download', 'id' => Crypt::encrypt($invoice->id)]) }}" target="_blank" class="btn btn-sm btn-primary me-2">{{__('Download')}}</a>
+                    </div>
                     <div class="all-button-box">
-                        <a href="{{ route('invoice.pdf', Crypt::encrypt($invoice->id))}}" target="_blank" class="btn btn-sm btn-primary">{{__('Download')}}</a>
+                        <a href="{{ route('invoice.pdf', ['requestType'=>'print', 'id' => Crypt::encrypt($invoice->id)]) }}" target="_blank" class="btn btn-sm btn-primary">{{__('Print')}}</a>
                     </div>
                 </div>
             </div>
@@ -442,6 +445,7 @@
                                     <small>{{__('All items here cannot be deleted.')}}</small>
                                     <div class="table-responsive mt-2">
                                         <table class="table mb-0 table-striped">
+                                            @if($iteams->count() > 0)
                                             <tr>
                                                 <th data-width="40" class="text-dark">#</th>
                                                 <th class="text-dark">{{__('Product')}}</th>
@@ -454,6 +458,7 @@
                                                     <small class="text-danger font-weight-bold">{{__('after tax & discount')}}</small>
                                                 </th>
                                             </tr>
+                                            @endif
                                             @php
                                                 $totalQuantity=0;
                                                 $totalRate=0;
@@ -518,6 +523,16 @@
                                                     <td class="text-end">{{\Auth::user()->priceFormat(($iteam->price * $iteam->quantity - $iteam->discount) + $totalTaxPrice)}}</td>
                                                 </tr>
                                             @endforeach
+                                            <tr>
+                                                <th class="text-dark" colspan="2">{{__('Service Charge')}}</th>
+                                                <th class="text-dark" colspan="4">{{__('Description')}}</th>
+                                                <th class="text-dark" colspan="2">{{__('Employee')}}</th>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="2">{{@$invoice->customerService->service_charge}}৳</td>
+                                                <td colspan="4">{{@$invoice->customerService->description}}</td>
+                                                <td colspan="2">{{@$invoice->customerService->employee->name}}</td>
+                                            </tr>
                                             <tfoot>
                                             <tr>
                                                 <td></td>

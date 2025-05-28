@@ -220,7 +220,6 @@
                     <tr>
                         <td>
                             <div class="form-group">
-                                <label for="product_id_0">Product</label>
                                 <select class="form-control js-product-select" id="product_id_0" name="items[0][item]" required>
                                     <option value="">Select a product</option>
                                 </select>
@@ -236,6 +235,35 @@
                             <button type="button" class="btn btn-danger btn-sm remove-row" disabled>
                                 <i class="fas fa-trash"></i>
                             </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Service Charge</th>
+                        <th>Employee</th>
+                        <th>
+                            Description
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <input type="number" name="service_charge" id="service_charge" class="form-control" min="0">
+                        </td>
+                        <td>
+                            <select name="employee_id" id="employee_id" class="form-control select2">
+                                @foreach($employees as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td>
+                            <textarea name="service_charge_description" id="service_charge_description" class="form-control" placeholder="Description"></textarea>
                         </td>
                     </tr>
                 </tbody>
@@ -310,15 +338,14 @@
             <div class="col-md-12">
                 <h5>Footer Note</h5>
                 <textarea id="editor" name="footer_note">
-                    <h2>Welcome to Jodit Editor!</h2>
-                    <p>This is a powerful and modern WYSIWYG editor. You can:</p>
+                    <b style="color: #22242c;">বিশেষ দ্রষ্টব্য: সকল যাতায়াত খরচ কামার বহন করবে ।</b>
+                    <p>- Payment Method : Cash</p>
                     <ul>
-                        <li><strong>Format text</strong> with bold, italic, underline</li>
-                        <li><em>Create lists</em> and tables</li>
-                        <li>Insert images and links</li>
-                        <li>Add code blocks and more!</li>
+                        <li>১/এস. কে. কর্পো রের্পো শন সর্বো র্বো তিন কর্ম দির্ম বসের মধ্যে গৃহী গৃ ত সার্ভিসের্ভি র সেবা দান করে থাকে। (ঢাকা সিটির মধ্যে)</li>
+                        <li>২/ ওয়াটার পিউরিফায়ার সার্ভিসের্ভি র ক্ষেত্রে কোন পার্টস গ্যারান্টির আওতাভু নয়।</li>
                     </ul>
-                    <p>Try editing this content and see the HTML output below.</p>
+                    <b>সার্ভিসর্ভি সংক্রা যেকোনো অভিযোগ ধুমা (০১৯৫৮৩৯৪৭৫৭) নরে যোগাযোগের মাধ্যমেই গৃহীত হবে। উ নর
+                        ব্যতীত অন্য কোনো নরে যোগাযোগ করার ফলে কাঙ্ক্ষিত সার্ভিসর্ভি দানে বিল হলে, কোম্পানি দায়ী থাকবে না।</b>
                 </textarea>
             </div>
         </div>
@@ -376,6 +403,10 @@
                 totalTax += rowSubtotal * (tax / 100);
             });
             
+            // Add service charge to subtotal
+            const serviceCharge = parseFloat($('#service_charge').val()) || 0;
+            subtotal += serviceCharge;
+            
             // Get additional discount
             const additionalDiscount = parseFloat($('#discount_apply').val()) || 0;
             const paidAmount = parseFloat($('#paid_amount').val()) || 0;
@@ -394,8 +425,8 @@
             $('#due-amount').text(dueAmount.toFixed(2));
         }
 
-        // Add event listener for the additional discount field and paid amount
-        $('#discount_apply, #paid_amount').on('input', function() {
+        // Add event listener for the additional discount field, paid amount, and service charge
+        $('#discount_apply, #paid_amount, #service_charge').on('input', function() {
             updateSummaryTable();
         });
 

@@ -69,6 +69,12 @@
             /* Prevent overflow */
         }
 
+        @media print {
+            .invoice-preview-main {
+                box-shadow: none;
+            }
+        }
+
         .invoice-header,
         .invoice-body,
         .invoice-footer {
@@ -203,17 +209,27 @@
         <div class="invoice-body">
             <table>
                 <tr>
-                    <td><strong>{{ __('Bill To') }}:</strong><br>{{ $customer->billing_name }}<br>{{ $customer->billing_address }}
+                    <td><strong>{{ __('Bill To') }}:</strong><br>{{ $customer->billing_name }}<br>{{ @$invoice->address->billing_address_line_1 }},
+                        {{ @$invoice->address->billing_address_line_2 ? @$invoice->address->billing_address_line_2 . ', ' : '' }}
+                        {{ @$invoice->address->billing_city }},
+                        {{ @$invoice->address->billing_state }},
+                        {{ @$invoice->address->billing_zipcode }}
                     </td>
                     @if ($settings['shipping_display'] == 'on')
                         <td class="text-right">
-                            <strong>{{ __('Ship To') }}:</strong><br>{{ $customer->shipping_name }}<br>{{ $customer->shipping_address }}
+                            <strong>{{ __('Ship To') }}:</strong><br>{{ $customer->shipping_name ?? $customer->billing_name }}<br>{{ @$invoice->address->shipping_address_line_1 }},
+                            {{ @$invoice->address->shipping_address_line_2 ? @$invoice->address->shipping_address_line_2 . ', ' : '' }}
+                            {{ @$invoice->address->shipping_city }},
+                            {{ @$invoice->address->shipping_state }},
+                            {{ @$invoice->address->shipping_zipcode }}
                         </td>
                     @endif
                 </tr>
             </table>
             <div class="invoice-summary">
                 <table class="add-border invoice-summary" style="margin-top: 30px;">
+                    
+                    @if (isset($invoice->itemData) && count($invoice->itemData) > 0)
                     <thead style="background: {{ $color }};color:{{ $font_color }}">
                         <tr>
                             <th>{{ __('SL') }}</th>
@@ -225,6 +241,7 @@
                             <th class="text-right">{{ __('Price') }} <small>after discount</small></th>
                         </tr>
                     </thead>
+                    @endif
                     <tbody>
                         @if (isset($invoice->itemData) && count($invoice->itemData) > 0)
                             @foreach ($invoice->itemData as $key => $item)
@@ -266,7 +283,12 @@
                                     @endif
                                 </tr>
                             @endforeach
-                        @else
+                        @endif
+                        @if ($invoice->customerService)
+                            <tr>
+                                <td colspan="5">Service Charge: </td>
+                                <td colspan="1" style="text-align: right;">{{ $invoice->customerService->service_charge }}৳</td>
+                            </tr>
                         @endif
 
                     </tbody>
@@ -337,11 +359,15 @@
         </div>
         <div class="invoice-footer">
 
-            <div class="invoice-extra-info">
+            <div class="invoice-extra-info" style="margin-bottom: 50px;">
                 <h5>{{ __('Note') }}: <span
                         class="text-muted ml-2">{{ !empty($invoice->note) ? $invoice->note : '--' }}</span>
                 </h5>
 
+            </div>
+
+            <div style="line-height: 30px !important;">
+                {!! $invoice->footer_text !!}
             </div>
 
             <div class="invoice-signature">
@@ -352,7 +378,7 @@
                     </div>
                     <div>
                         <p style="text-align: center !important; font-size: 11px">
-                            {{ !empty($invoice->salesperson) ? $invoice->salesperson : 'N/A' }}</p>
+                            {{ !empty(@$invoice->customerService->employee->name) ? @$invoice->customerService->employee->name : 'N/A' }}</p>
                         <div class="customer-signature">{{ __('Sales Person') }}</div> <!-- Sales Person field -->
                     </div>
                 </div>
@@ -360,8 +386,12 @@
         </div>
     </div>
 
-    @if (!isset($preview))
+    @if (!isset($preview) && $requestType != 'print')
         @include('invoice.script');
+    @else
+        <script>
+            window.print();
+        </script>
     @endif
 </body>
 

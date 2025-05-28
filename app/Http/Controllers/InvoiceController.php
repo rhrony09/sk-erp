@@ -6,7 +6,9 @@ use App\Exports\InvoiceExport;
 use App\Models\BankAccount;
 use App\Models\CreditNote;
 use App\Models\Customer;
+use App\Models\CustomerService;
 use App\Models\CustomField;
+use App\Models\Employee;
 use App\Models\Invoice;
 use App\Models\InvoiceBankTransfer;
 use App\Models\InvoicePayment;
@@ -155,8 +157,10 @@ class InvoiceController extends Controller
             $category->prepend('Select Category', '');
             $product_services = ProductService::get()->pluck('name', 'id');
             $product_services->prepend('--', '');
+            $employees = Employee::get()->pluck('name', 'id');
+            $employees->prepend('Select Employee', '');
 
-            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId'));
+            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId', 'employees'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -323,6 +327,21 @@ class InvoiceController extends Controller
                 Utility::bankAccountBalance($invoicePayment->account_id, $paidAmount, 'credit');
             }
 
+            if($request->service_charge > 0){
+                $customer_service = new CustomerService();
+                $customer_service->invoice_id = $invoice->id;
+                $customer_service->customer_id = $request->customer_id;
+                $customer_service->employee_id = $request->employee_id;
+                $customer_service->service_charge = $request->service_charge;
+                $customer_service->description = $request->service_charge_description;
+                $customer_service->created_by = \Auth::user()->id;
+                $customer_service->status = 0;
+                $customer_service->is_paid = 0;
+                $customer_service->due_date = $request->due_date;
+                $customer_service->product_price = array_sum(array_column($request->items, 'price'));
+                $customer_service->save();
+            }
+
             return redirect()->route('invoice.index', $invoice->id)->with('success', __('Invoice successfully created.'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
@@ -344,8 +363,10 @@ class InvoiceController extends Controller
 
             $invoice->customField = CustomField::getData($invoice, 'invoice');
             $customFields = CustomField::where('module', '=', 'invoice')->get();
+            $employees = Employee::get()->pluck('name', 'id');
+            $employees->prepend('Select Employee', '');
 
-            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields', 'invoiceAddress'));
+            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields', 'invoiceAddress', 'employees'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -502,7 +523,7 @@ class InvoiceController extends Controller
                 return redirect()->back()->with('error', __('Invoice Not Found.'));
             }
             $id = Crypt::decrypt($ids);
-            $invoice = Invoice::with(['creditNote', 'payments.bankAccount', 'items.product.unit', 'customer'])->find($id);
+            $invoice = Invoice::with(['creditNote', 'payments.bankAccount', 'items.product.unit', 'customer','customerService.employee'])->find($id);
             $invoiceAddress = \App\Models\InvoiceAddress::where('invoice_id', $invoice->id)->first();
 
             $invoicePayment = InvoicePayment::where('invoice_id', $invoice->id)->first();
@@ -1109,7 +1130,7 @@ class InvoiceController extends Controller
         return view('invoice.templates.' . $template, compact('invoice', 'preview', 'color', 'img', 'settings', 'customer', 'font_color', 'customFields'));
     }
 
-    public function invoice($invoice_id)
+    public function invoice($requestType, $invoice_id)
     {
         $settings = Utility::settings();
 
@@ -1201,7 +1222,7 @@ class InvoiceController extends Controller
             $color = '#' . $settings['invoice_color'];
             $font_color = Utility::getFontColor($color);
 
-            return view('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'));
+            return view('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields','requestType'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }

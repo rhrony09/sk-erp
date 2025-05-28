@@ -592,6 +592,28 @@
                                     </td>
                                     <td colspan="5"></td>
                                 </tr>
+                                <tr>
+                                    <th colspan="1">Service Charge</th>
+                                    <th colspan="2">Employee</th>
+                                    <th colspan="4">
+                                        Description
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td colspan="1">
+                                        <input type="number" name="service_charge" id="service_charge" class="form-control" value="{{@$invoice->customerService->service_charge}}" min="0">
+                                    </td>
+                                    <td colspan="2">
+                                        <select name="employee_id" id="employee_id" class="form-control select2">
+                                            @foreach($employees as $id => $name)
+                                                <option value="{{ $id }}" {{ @$invoice->customerService->employee_id == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td colspan="4">
+                                        <textarea name="service_charge_description" id="service_charge_description" class="form-control" placeholder="Description">{{@$invoice->customerService->description}}</textarea>
+                                    </td>
+                                </tr>
                             </tbody>
                             <tfoot>
                                 <tr>

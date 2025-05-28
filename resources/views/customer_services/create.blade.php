@@ -20,6 +20,9 @@
                 {{ Form::label('customer_id', __('Customer'), ['class' => 'form-label']) }}
                 <select name="customer_id" class="form-control select2" id="select" required>
                     <option value="">{{ __('Select Customer') }}</option>
+                    @foreach($customers as $key => $customer)
+                        <option value="{{ $key }}">{{ $customer }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="form-group col-md-6">
@@ -102,4 +105,11 @@
     //         $('.quantity').removeClass('d-block');
     //     }
     // });
+
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%',
+            dropdownParent: $('.modal-body')
+        });
+    });
 </script>

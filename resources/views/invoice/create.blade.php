@@ -220,7 +220,6 @@
                     <tr>
                         <td>
                             <div class="form-group">
-                                <label for="product_id_0">Product</label>
                                 <select class="form-control js-product-select" id="product_id_0" name="items[0][item]" required>
                                     <option value="">Select a product</option>
                                 </select>
@@ -236,6 +235,35 @@
                             <button type="button" class="btn btn-danger btn-sm remove-row" disabled>
                                 <i class="fas fa-trash"></i>
                             </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Service Charge</th>
+                        <th>Employee</th>
+                        <th>
+                            Description
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <input type="number" name="service_charge" id="service_charge" class="form-control" min="0">
+                        </td>
+                        <td>
+                            <select name="employee_id" id="employee_id" class="form-control select2">
+                                @foreach($employees as $id => $name)
+                                    <option value="{{ $id }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td>
+                            <textarea name="service_charge_description" id="service_charge_description" class="form-control" placeholder="Description"></textarea>
                         </td>
                     </tr>
                 </tbody>
@@ -303,7 +331,25 @@
                 </div>
             </div>
         </div>
-        
+    </div>
+
+    <div class="card p-3">
+        <div class="row">
+            <div class="col-md-12">
+                <h5>Footer Note</h5>
+                <textarea id="editor" name="footer_note">
+                    <b style="color: #22242c;">বিশেষ দ্রষ্টব্য: সকল যাতায়াত খরচ কামার বহন করবে ।</b>
+                    <p>- Payment Method : Cash</p>
+                    <ul>
+                        <li>১/এস. কে. কর্পো রের্পো শন সর্বো র্বো তিন কর্ম দির্ম বসের মধ্যে গৃহী গৃ ত সার্ভিসের্ভি র সেবা দান করে থাকে। (ঢাকা সিটির মধ্যে)</li>
+                        <li>২/ ওয়াটার পিউরিফায়ার সার্ভিসের্ভি র ক্ষেত্রে কোন পার্টস গ্যারান্টির আওতাভু নয়।</li>
+                    </ul>
+                    <b>সার্ভিসর্ভি সংক্রা যেকোনো অভিযোগ ধুমা (০১৯৫৮৩৯৪৭৫৭) নরে যোগাযোগের মাধ্যমেই গৃহীত হবে। উ নর
+                        ব্যতীত অন্য কোনো নরে যোগাযোগ করার ফলে কাঙ্ক্ষিত সার্ভিসর্ভি দানে বিল হলে, কোম্পানি দায়ী থাকবে না।</b>
+                </textarea>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-between mt-3">
             <div>
                 <button type="button" class="btn btn-outline-secondary me-2">Cancel</button>
@@ -357,6 +403,10 @@
                 totalTax += rowSubtotal * (tax / 100);
             });
             
+            // Add service charge to subtotal
+            const serviceCharge = parseFloat($('#service_charge').val()) || 0;
+            subtotal += serviceCharge;
+            
             // Get additional discount
             const additionalDiscount = parseFloat($('#discount_apply').val()) || 0;
             const paidAmount = parseFloat($('#paid_amount').val()) || 0;
@@ -375,8 +425,8 @@
             $('#due-amount').text(dueAmount.toFixed(2));
         }
 
-        // Add event listener for the additional discount field and paid amount
-        $('#discount_apply, #paid_amount').on('input', function() {
+        // Add event listener for the additional discount field, paid amount, and service charge
+        $('#discount_apply, #paid_amount, #service_charge').on('input', function() {
             updateSummaryTable();
         });
 
@@ -543,4 +593,126 @@
         updateSummaryTable();
     });
 </script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
+    
+    <script>
+        // Initialize Jodit editor
+        const editor = Jodit.make('#editor', {
+            height: 400,
+            theme: 'default',
+            language: 'en',
+            
+            // Toolbar configuration
+            buttons: [
+                'source', '|',
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'superscript', 'subscript', '|',
+                'ul', 'ol', '|',
+                'outdent', 'indent', '|',
+                'font', 'fontsize', 'brush', 'paragraph', '|',
+                'image', 'video', 'table', 'link', '|',
+                'align', 'undo', 'redo', '|',
+                'hr', 'eraser', 'copyformat', '|',
+                'fullsize', 'selectall', 'print'
+            ],
+            
+            // Editor configuration
+            uploader: {
+                insertImageAsBase64URI: true // For demo purposes
+            },
+            
+            // Disable some features for demo
+            filebrowser: {
+                ajax: {
+                    url: '#' // Disabled for demo
+                }
+            },
+            
+            // Image resize
+            image: {
+                openOnDblClick: true,
+                editSrc: false,
+                useImageEditor: true,
+                editTitle: true,
+                editAlt: true,
+                editLink: true,
+                editSize: true,
+                editMargins: true,
+                editClass: true,
+                editStyle: true,
+                editId: true,
+                editAlign: true,
+                showPreview: true,
+                selectImageAfterClose: true
+            },
+            
+            // Events
+            events: {
+                change: function(value) {
+                    console.log('Content changed:', value);
+                }
+            }
+        });
+        
+        // Helper functions
+        function getContent() {
+            const content = editor.getEditorValue();
+            document.getElementById('output-content').innerHTML = 
+                '<strong>HTML Content:</strong><pre>' + escapeHtml(content) + '</pre>';
+        }
+        
+        function getPlainText() {
+            const plainText = editor.getEditorText();
+            document.getElementById('output-content').innerHTML = 
+                '<strong>Plain Text:</strong><pre>' + escapeHtml(plainText) + '</pre>';
+        }
+        
+        function setContent() {
+            const sampleContent = `
+                <h2>Sample Content</h2>
+                <p>This is <strong>sample content</strong> with various formatting:</p>
+                <blockquote>
+                    <p>"This is a blockquote example."</p>
+                </blockquote>
+                <table border="1" style="border-collapse: collapse; width: 100%;">
+                    <tr>
+                        <th>Column 1</th>
+                        <th>Column 2</th>
+                    </tr>
+                    <tr>
+                        <td>Data 1</td>
+                        <td>Data 2</td>
+                    </tr>
+                </table>
+                <p><a href="#" target="_blank">This is a link</a></p>
+            `;
+            editor.setEditorValue(sampleContent);
+        }
+        
+        function clearEditor() {
+            editor.setEditorValue('');
+            document.getElementById('output-content').innerHTML = 'Editor cleared!';
+        }
+        
+        let isReadOnly = false;
+        function toggleReadOnly() {
+            isReadOnly = !isReadOnly;
+            editor.setReadOnly(isReadOnly);
+            document.getElementById('output-content').innerHTML = 
+                'Editor is now: ' + (isReadOnly ? 'Read-Only' : 'Editable');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Auto-update output on editor change (optional)
+        editor.events.on('change', function() {
+            // Uncomment the line below for real-time HTML output
+            // getContent();
+        });
+    </script>
 @endsection

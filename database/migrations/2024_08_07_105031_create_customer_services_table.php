@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('employee_location')->nullable();
             $table->integer('created_by')->default('1');
             $table->integer('vendor_id')->nullable();
+            $table->bigInteger('invoice_id')->nullable();
             $table->timestamps();
         });
     }

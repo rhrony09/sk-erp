@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\CustomerService;
 use App\Models\Employee;
 use App\Models\Invoice;
+use App\Models\InvoiceProduct;
 use App\Models\ProductService;
 use App\Models\ServiceProduct;
 use App\Models\User;
@@ -182,25 +183,41 @@ class CustomerServiceController extends Controller
             $customerService                      = new CustomerService();
             if (\Auth::user()->type != 'client') {
                 $customerService->customer_id         = $request->customer_id;
+                $customerService->employee_id         = $request->employee_id;
+                $customerService->due_date            = $request->due_date;
+                $customerService->status              = $request->status;
+                $customerService->created_by          = \Auth::user()->creatorId();
             } else {
                 $customerService->customer_id         = \Auth::user()->customer->id;
             }
-            $customerService->employee_id         = $request->employee_id;
             $customerService->phone_number        = $request->phone_number;
             $customerService->address             = $request->address;
             $customerService->description         = $request->description;
-            $customerService->due_date            = $request->due_date;
-            $customerService->service_charge      = $request->service_charge;
-            if (\Auth::user()->type != 'client') {
-                $customerService->status              = $request->status;
-                $customerService->created_by          = \Auth::user()->creatorId();
-            }
+            $customerService->service_charge      = $request->service_charge ?? 0;
             $customerService->save();
-            // if (\Auth::user()->type != 'client') {
-            //     if ($customerService->employee->email != null) {
-            //         Mail::to($customerService->employee->email)->send(new EmployeeServiceNotification($customerService));
-            //     }
-            // }
+
+            $invoice = new Invoice();
+            $invoice->invoice_id = $this->invoiceNumber();
+            $invoice->customer_id = $customerService->customer_id;
+            $invoice->status = 0;
+            $invoice->issue_date = $customerService->created_at;
+            $invoice->due_date = $customerService->due_date;
+            $invoice->category_id = 47;
+            $invoice->created_by = \Auth::user()->creatorId();
+            $invoice->salesman_id = $request->employee_id ?? \Auth::user()->id;
+            $invoice->footer_text = '<b style="color: #22242c;">বিশেষ দ্রষ্টব্য: সকল যাতায়াত খরচ কামার বহন করবে ।</b>
+                    <p>- Payment Method : Cash</p>
+                    <ul>
+                        <li>১/এস. কে. কর্পো রের্পো শন সর্বো র্বো তিন কর্ম দির্ম বসের মধ্যে গৃহী গৃ ত সার্ভিসের্ভি র সেবা দান করে থাকে। (ঢাকা সিটির মধ্যে)</li>
+                        <li>২/ ওয়াটার পিউরিফায়ার সার্ভিসের্ভি র ক্ষেত্রে কোন পার্টস গ্যারান্টির আওতাভু নয়।</li>
+                    </ul>
+                    <b>সার্ভিসর্ভি সংক্রা যেকোনো অভিযোগ ধুমা (০১৯৫৮৩৯৪৭৫৭) নরে যোগাযোগের মাধ্যমেই গৃহীত হবে। উ নর
+                        ব্যতীত অন্য কোনো নরে যোগাযোগ করার ফলে কাঙ্ক্ষিত সার্ভিসর্ভি দানে বিল হলে, কোম্পানি দায়ী থাকবে না।</b>';
+            $invoice->save();
+
+            $customerService->invoice_id = $invoice->id;
+            $customerService->save();
+            
             return redirect()->route('customer_services.index')->with('success', __('Customer Service successfully created.'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));

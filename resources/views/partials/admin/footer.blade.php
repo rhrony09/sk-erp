@@ -44,6 +44,9 @@
 <script src="{{ asset('js/jscolor.js') }}"></script>
 <script src="{{ asset('js/custom.js') }}"></script>
 
+<!-- Summernote JS -->
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+
 @if ($message = Session::get('success'))
     <script>
         show_toastr('success', '{!! $message !!}');

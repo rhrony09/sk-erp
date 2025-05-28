@@ -536,7 +536,7 @@ Route::get('revenue/index', [RevenueController::class, 'index'])->name('revenue.
 
 Route::resource('revenue', RevenueController::class)->middleware(['auth', 'XSS', 'revalidate']);
 
-Route::get('invoice/pdf/{id}', [InvoiceController::class, 'invoice'])->name('invoice.pdf')->middleware(['XSS', 'revalidate']);
+Route::get('invoice/pdf/{requestType}/{id}', [InvoiceController::class, 'invoice'])->name('invoice.pdf')->middleware(['XSS', 'revalidate']);
 
 Route::get('bill/pdf/{id}', [BillController::class, 'bill'])->name('bill.pdf')->middleware(['XSS', 'revalidate']);
 

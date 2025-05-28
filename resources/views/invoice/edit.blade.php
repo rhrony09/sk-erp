@@ -592,6 +592,28 @@
                                     </td>
                                     <td colspan="5"></td>
                                 </tr>
+                                <tr>
+                                    <th colspan="1">Service Charge</th>
+                                    <th colspan="2">Employee</th>
+                                    <th colspan="4">
+                                        Description
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td colspan="1">
+                                        <input type="number" name="service_charge" id="service_charge" class="form-control" value="{{@$invoice->customerService->service_charge}}" min="0">
+                                    </td>
+                                    <td colspan="2">
+                                        <select name="employee_id" id="employee_id" class="form-control select2">
+                                            @foreach($employees as $id => $name)
+                                                <option value="{{ $id }}" {{ @$invoice->customerService->employee_id == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td colspan="4">
+                                        <textarea name="service_charge_description" id="service_charge_description" class="form-control" placeholder="Description">{{@$invoice->customerService->description}}</textarea>
+                                    </td>
+                                </tr>
                             </tbody>
                             <tfoot>
                                 <tr>
@@ -638,6 +660,18 @@
                 </div>
             </div>
         </div>
+
+        <div class="card p-3">
+            <div class="row">
+                <div class="col-md-12">
+                    <h5>Footer Note</h5>
+                    <textarea id="editor" name="footer_note">
+                        {{ $invoice->footer_text }}
+                    </textarea>
+                </div>
+            </div>
+
+        </div>
         <div class="modal-footer">
             <input type="button" value="{{ __('Cancel') }}" onclick="location.href = '{{ route('invoice.index') }}';"
                 class="btn btn-light me-3">
@@ -645,4 +679,126 @@
         </div>
         {{ Form::close() }}
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
+    
+    <script>
+        // Initialize Jodit editor
+        const editor = Jodit.make('#editor', {
+            height: 400,
+            theme: 'default',
+            language: 'en',
+            
+            // Toolbar configuration
+            buttons: [
+                'source', '|',
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'superscript', 'subscript', '|',
+                'ul', 'ol', '|',
+                'outdent', 'indent', '|',
+                'font', 'fontsize', 'brush', 'paragraph', '|',
+                'image', 'video', 'table', 'link', '|',
+                'align', 'undo', 'redo', '|',
+                'hr', 'eraser', 'copyformat', '|',
+                'fullsize', 'selectall', 'print'
+            ],
+            
+            // Editor configuration
+            uploader: {
+                insertImageAsBase64URI: true // For demo purposes
+            },
+            
+            // Disable some features for demo
+            filebrowser: {
+                ajax: {
+                    url: '#' // Disabled for demo
+                }
+            },
+            
+            // Image resize
+            image: {
+                openOnDblClick: true,
+                editSrc: false,
+                useImageEditor: true,
+                editTitle: true,
+                editAlt: true,
+                editLink: true,
+                editSize: true,
+                editMargins: true,
+                editClass: true,
+                editStyle: true,
+                editId: true,
+                editAlign: true,
+                showPreview: true,
+                selectImageAfterClose: true
+            },
+            
+            // Events
+            events: {
+                change: function(value) {
+                    console.log('Content changed:', value);
+                }
+            }
+        });
+        
+        // Helper functions
+        function getContent() {
+            const content = editor.getEditorValue();
+            document.getElementById('output-content').innerHTML = 
+                '<strong>HTML Content:</strong><pre>' + escapeHtml(content) + '</pre>';
+        }
+        
+        function getPlainText() {
+            const plainText = editor.getEditorText();
+            document.getElementById('output-content').innerHTML = 
+                '<strong>Plain Text:</strong><pre>' + escapeHtml(plainText) + '</pre>';
+        }
+        
+        function setContent() {
+            const sampleContent = `
+                <h2>Sample Content</h2>
+                <p>This is <strong>sample content</strong> with various formatting:</p>
+                <blockquote>
+                    <p>"This is a blockquote example."</p>
+                </blockquote>
+                <table border="1" style="border-collapse: collapse; width: 100%;">
+                    <tr>
+                        <th>Column 1</th>
+                        <th>Column 2</th>
+                    </tr>
+                    <tr>
+                        <td>Data 1</td>
+                        <td>Data 2</td>
+                    </tr>
+                </table>
+                <p><a href="#" target="_blank">This is a link</a></p>
+            `;
+            editor.setEditorValue(sampleContent);
+        }
+        
+        function clearEditor() {
+            editor.setEditorValue('');
+            document.getElementById('output-content').innerHTML = 'Editor cleared!';
+        }
+        
+        let isReadOnly = false;
+        function toggleReadOnly() {
+            isReadOnly = !isReadOnly;
+            editor.setReadOnly(isReadOnly);
+            document.getElementById('output-content').innerHTML = 
+                'Editor is now: ' + (isReadOnly ? 'Read-Only' : 'Editable');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Auto-update output on editor change (optional)
+        editor.events.on('change', function() {
+            // Uncomment the line below for real-time HTML output
+            // getContent();
+        });
+    </script>
 @endsection

@@ -282,6 +282,22 @@
                             <table class="table mb-0">
                                 <tbody>
                                     <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Paid Amount</label>
+                                                <select name="payment_method" id="payment_method" class="form-control">
+                                                    <option value="">Select Payment Method</option>
+                                                    @foreach($bank_accounts as $id => $name)
+                                                        <option value="{{ $id }}">{{ $name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            
+                                        </td>
+                                    </tr>
+                                    <tr>
                                         <td class="fw-bold">Subtotal</td>
                                         <td class="text-end" id="subtotal-amount">0.00</td>
                                     </tr>
@@ -472,7 +488,9 @@
                             
                             return {
                                 id: item.id,
-                                text: displayText
+                                text: displayText,
+                                // Store the full customer data for later use
+                                customerData: item
                             };
                         })
                     };
@@ -484,6 +502,25 @@
             allowClear: true,
             width: '100%',
             theme: 'default'
+        }).on('select2:select', function(e) {
+            // Get the selected customer data
+            const customerData = e.params.data.customerData;
+            
+            // Fill billing address fields
+            $('#billing_address_line_1').val(customerData.billing_address || '');
+            $('#billing_city').val(customerData.billing_city || '');
+            $('#billing_state').val(customerData.billing_state || '');
+            $('#billing_zip_code').val(customerData.billing_zip || '');
+            
+            // Copy billing address to shipping address by default
+            $('#shipping_address_line_1').val(customerData.billing_address || '');
+            $('#shipping_city').val(customerData.billing_city || '');
+            $('#shipping_state').val(customerData.billing_state || '');
+            $('#shipping_zip_code').val(customerData.billing_zip || '');
+        }).on('select2:clear', function() {
+            // Clear all address fields when customer selection is cleared
+            $('#billing_address_line_1, #billing_city, #billing_state, #billing_zip_code').val('');
+            $('#shipping_address_line_1, #shipping_city, #shipping_state, #shipping_zip_code').val('');
         });
 
         // Function to initialize Select2 for product dropdowns
@@ -542,7 +579,6 @@
                 <tr>
                     <td>
                         <div class="form-group">
-                            <label for="product_id_${productRowCounter}">Product</label>
                             <select class="form-control js-product-select" id="product_id_${productRowCounter}" name="items[${productRowCounter}][item]" required>
                                 <option value="">Select a product</option>
                             </select>

@@ -159,8 +159,9 @@ class InvoiceController extends Controller
             $product_services->prepend('--', '');
             $employees = Employee::get()->pluck('name', 'id');
             $employees->prepend('Select Employee', '');
+            $bank_accounts = BankAccount::get()->pluck('bank_name', 'id');
 
-            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId', 'employees'));
+            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId', 'employees','bank_accounts'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -297,7 +298,7 @@ class InvoiceController extends Controller
                 $invoicePayment->date = $request->issue_date; // Use invoice date for payment date
                 $invoicePayment->amount = $paidAmount;
                 $invoicePayment->account_id = $bankAccount->id; // Use the first available bank account
-                $invoicePayment->payment_method = 0;
+                $invoicePayment->payment_method = $request->payment_method ?? 0;
                 $invoicePayment->reference = $request->payment_reference ?? '';
                 $invoicePayment->description = 'Payment received during invoice creation';
                 $invoicePayment->save();
@@ -1348,7 +1349,7 @@ class InvoiceController extends Controller
                 break;
         }
         
-        $customers = $query->select('id', 'name', 'email', 'contact', 'customer_id')
+        $customers = $query->select('id', 'name', 'email', 'contact', 'customer_id','billing_address','billing_city','billing_state','billing_country','billing_zip')
             ->limit(10)
             ->get();
 

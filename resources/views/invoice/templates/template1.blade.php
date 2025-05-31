@@ -378,7 +378,7 @@
                     </div>
                     <div>
                         <p style="text-align: center !important; font-size: 11px">
-                            {{ !empty(@$invoice->customerService->employee->name) ? @$invoice->customerService->employee->name : 'N/A' }}</p>
+                            {{ !empty(@$invoice->salesman->name) ? @$invoice->salesman->name : '' }}</p>
                         <div class="customer-signature">{{ __('Sales Person') }}</div> <!-- Sales Person field -->
                     </div>
                 </div>

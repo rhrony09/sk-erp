@@ -8,797 +8,650 @@
     <li class="breadcrumb-item"><a href="{{ route('invoice.index') }}">{{ __('Invoice') }}</a></li>
     <li class="breadcrumb-item">{{ __('Invoice Edit') }}</li>
 @endsection
-@push('script-page')
-    <script src="{{ asset('js/jquery-ui.min.js') }}"></script>
-    <script src="{{ asset('js/jquery.repeater.min.js') }}"></script>
-    <script>
-        var selector = "body";
-        if ($(selector + " .repeater").length) {
-            var $dragAndDrop = $("body .repeater tbody").sortable({
-                handle: '.sort-handler'
-            });
-            var $repeater = $(selector + ' .repeater').repeater({
-                initEmpty: false,
-                defaultValues: {
-                    'status': 1
-                },
-                show: function() {
-                    $(this).slideDown();
-                    var file_uploads = $(this).find('input.multi');
-                    if (file_uploads.length) {
-                        $(this).find('input.multi').MultiFile({
-                            max: 3,
-                            accept: 'png|jpg|jpeg',
-                            max_size: 2048
-                        });
-                    }
-                    if ($('.select2').length) {
-                        $('.select2').select2();
-                    }
-                },
-                hide: function(deleteElement) {
-                    $(this).slideUp(deleteElement);
-                    $(this).remove();
-                    var inputs = $(".amount");
-                    var subTotal = 0;
-                    for (var i = 0; i < inputs.length; i++) {
-                        subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-                    }
-                    $('.subTotal').html(subTotal.toFixed(2));
-                    $('.totalAmount').html(subTotal.toFixed(2));
-                },
-                ready: function(setIndexes) {
-                    $dragAndDrop.on('drop', setIndexes);
-                },
-                isFirstItemUndeletable: true
-            });
-
-            var value = $(selector + " .repeater").attr('data-value');
-            if (typeof value != 'undefined' && value.length != 0) {
-                value = JSON.parse(value);
-                $repeater.setList(value);
-                
-                for (var i = 0; i < value.length; i++) {
-                    var tr = $('#sortable-table .id[value="' + value[i].id + '"]').parent().parent();
-                    tr.find('.item').val(value[i].product_id);
-                    
-                    setTimeout(function(element) {
-                        changeItem(element);
-                    }, 200, tr.find('.item'));
-                }
-            } else {
-                var tr = $('#sortable-table .id').first().parent().parent();
-                tr.find('.item').trigger('change');
-            }
-        }
-
-        $(document).on('change', '#customer', function() {
-            $('#customer_detail').removeClass('d-none');
-            $('#customer_detail').addClass('d-block');
-            $('#customer-box').removeClass('d-block');
-            $('#customer-box').addClass('d-none');
-            var id = $(this).val();
-            var url = $(this).data('url');
-            $.ajax({
-                url: url,
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': jQuery('#token').val()
-                },
-                data: {
-                    'id': id
-                },
-                cache: false,
-                success: function(data) {
-                    if (data != '') {
-                        $('#customer_detail').html(data);
-                    } else {
-                        $('#customer-box').removeClass('d-none');
-                        $('#customer-box').addClass('d-block');
-                        $('#customer_detail').removeClass('d-block');
-                        $('#customer_detail').addClass('d-none');
-                    }
-                },
-
-            });
-        });
-
-        $(document).on('click', '#remove', function() {
-            $('#customer-box').removeClass('d-none');
-            $('#customer-box').addClass('d-block');
-            $('#customer_detail').removeClass('d-block');
-            $('#customer_detail').addClass('d-none');
-        })
-
-        $(document).on('change', '.item', function() {
-            changeItem($(this));
-        });
-
-        var invoice_id = '{{ $invoice->id }}';
-
-        function changeItem(element) {
-            var iteams_id = element.val();
-            var url = element.data('url');
-            var el = element;
-            if (iteams_id === '') {
-                // If no item selected, just clear the fields
-                $(el.parent().parent().find('.quantity')).val(1);
-                $(el.parent().parent().find('.price')).val(0);
-                $(el.parent().parent().find('.discount')).val(0);
-                $(el.parent().parent().parent().find('.pro_description')).val('');
-                $(el.parent().parent().find('.taxes')).html('');
-                $(el.parent().parent().find('.tax')).val('');
-                $(el.parent().parent().find('.unit')).html('');
-                $(el.parent().parent().find('.amount')).html('0.00');
-                calculateTotals();
-                return;
-            }
-            
-            $.ajax({
-                url: url,
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': jQuery('#token').val()
-                },
-                data: {
-                    'product_id': iteams_id
-                },
-                cache: false,
-                success: function(data) {
-                    var item = JSON.parse(data);
-
-                    $.ajax({
-                        url: '{{ route('invoice.items') }}',
-                        type: 'GET',
-                        headers: {
-                            'X-CSRF-TOKEN': jQuery('#token').val()
-                        },
-                        data: {
-                            'invoice_id': invoice_id,
-                            'product_id': iteams_id,
-                        },
-                        cache: false,
-                        success: function(data) {
-                            var invoiceItems = JSON.parse(data);
-                            if (invoiceItems != null) {
-                                var amount = (invoiceItems.price * invoiceItems.quantity);
-
-                                $(el.parent().parent().find('.quantity')).val(invoiceItems.quantity);
-                                $(el.parent().parent().find('.price')).val(invoiceItems.price);
-                                $(el.parent().parent().find('.discount')).val(invoiceItems.discount);
-                                $(el.parent().parent().parent().find('.pro_description')).val(invoiceItems.description);
-                            } else {
-                                $(el.parent().parent().find('.quantity')).val(1);
-                                $(el.parent().parent().find('.price')).val(item.product.sale_price);
-                                $(el.parent().parent().find('.discount')).val(0);
-                                $(el.parent().parent().parent().find('.pro_description')).val(item.product.description);
-                            }
-
-                            var taxes = '';
-                            var tax = [];
-
-                            var totalItemTaxRate = 0;
-                            for (var i = 0; i < item.taxes.length; i++) {
-                                taxes +=
-                                    '<span class="badge bg-primary p-2 px-3 rounded mt-1 mr-1">' +
-                                    item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' +
-                                    '</span>';
-                                tax.push(item.taxes[i].id);
-                                totalItemTaxRate += parseFloat(item.taxes[i].rate);
-                            }
-
-                            var discount = $(el.parent().parent().find('.discount')).val();
-                            if (discount.length <= 0) {
-                                discount = 0;
-                            }
-
-                            if (invoiceItems != null) {
-                                var itemTaxPrice = parseFloat((totalItemTaxRate / 100)) * parseFloat((invoiceItems.price * invoiceItems.quantity) - discount);
-                            } else {
-                                var itemTaxPrice = parseFloat((totalItemTaxRate / 100)) * parseFloat((item.product.sale_price * 1) - discount);
-                            }
-
-                            $(el.parent().parent().find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-                            $(el.parent().parent().find('.itemTaxRate')).val(totalItemTaxRate.toFixed(2));
-                            $(el.parent().parent().find('.taxes')).html(taxes);
-                            $(el.parent().parent().find('.tax')).val(tax);
-                            $(el.parent().parent().find('.unit')).html(item.unit);
-
-                            // Calculate amount including tax and discount
-                            var quantity = parseFloat($(el.parent().parent().find('.quantity')).val());
-                            var price = parseFloat($(el.parent().parent().find('.price')).val());
-                            var discountVal = parseFloat($(el.parent().parent().find('.discount')).val()) || 0;
-                            
-                            var totalItemPrice = (quantity * price) - discountVal;
-                            var amount = totalItemPrice + itemTaxPrice;
-                            
-                            $(el.parent().parent().find('.amount')).html(amount.toFixed(2));
-
-                            // Recalculate all totals
-                            calculateTotals();
-                        }
-                    });
-                },
-            });
-        }
-        
-        // Function to calculate all totals
-        function calculateTotals() {
-            var totalItemPrice = 0;
-            var totalItemTaxPrice = 0;
-            var totalItemDiscountPrice = 0;
-            var subTotal = 0;
-            
-            // Calculate subtotal from each line
-            $('.amount').each(function() {
-                subTotal += parseFloat($(this).html()) || 0;
-            });
-            
-            // Get totals from quantity and price
-            $('.quantity').each(function(index) {
-                var quantity = parseFloat($(this).val()) || 0;
-                var price = parseFloat($('.price').eq(index).val()) || 0;
-                totalItemPrice += quantity * price;
-            });
-            
-            // Get all tax amounts
-            $('.itemTaxPrice').each(function() {
-                totalItemTaxPrice += parseFloat($(this).val()) || 0;
-            });
-            
-            // Get all discount amounts
-            $('.discount').each(function() {
-                totalItemDiscountPrice += parseFloat($(this).val()) || 0;
-            });
-            
-            // Update summary displays
-            $('.subTotal').html(totalItemPrice.toFixed(2));
-            $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-            $('.totalDiscount').html(totalItemDiscountPrice.toFixed(2));
-            $('.totalAmount').html((parseFloat(totalItemPrice) - parseFloat(totalItemDiscountPrice) + parseFloat(totalItemTaxPrice)).toFixed(2));
-        }
-
-        $(document).on('keyup', '.quantity', function() {
-            var el = $(this).parent().parent().parent().parent();
-
-            var quantity = $(this).val();
-            var price = $(el.find('.price')).val();
-            var discount = $(el.find('.discount')).val();
-            if (discount.length <= 0) {
-                discount = 0;
-            }
-
-            var totalItemPrice = (quantity * price) - discount;
-            var amount = (totalItemPrice);
-
-            var totalItemTaxRate = $(el.find('.itemTaxRate')).val();
-            var itemTaxPrice = parseFloat((totalItemTaxRate / 100) * (totalItemPrice));
-            $(el.find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-
-            $(el.find('.amount')).html((parseFloat(itemTaxPrice) + parseFloat(amount)).toFixed(2));
-
-            // Use the common calculation function
-            calculateTotals();
-        });
-
-        $(document).on('keyup change', '.price', function() {
-            var el = $(this).parent().parent().parent().parent();
-            var price = $(this).val();
-            var quantity = $(el.find('.quantity')).val();
-            var discount = $(el.find('.discount')).val();
-            if (discount.length <= 0) {
-                discount = 0;
-            }
-
-            var totalItemPrice = (quantity * price) - discount;
-            var amount = (totalItemPrice);
-
-            var totalItemTaxRate = $(el.find('.itemTaxRate')).val();
-            var itemTaxPrice = parseFloat((totalItemTaxRate / 100) * (totalItemPrice));
-            $(el.find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-
-            $(el.find('.amount')).html((parseFloat(itemTaxPrice) + parseFloat(amount)).toFixed(2));
-
-            // Use the common calculation function
-            calculateTotals();
-        });
-
-        $(document).on('keyup change', '.discount', function() {
-            var el = $(this).parent().parent().parent();
-            var discount = $(this).val();
-            if (discount.length <= 0) {
-                discount = 0;
-            }
-            var price = $(el.find('.price')).val();
-            var quantity = $(el.find('.quantity')).val();
-            
-            var totalItemPrice = (quantity * price) - discount;
-            var amount = (totalItemPrice);
-
-            var totalItemTaxRate = $(el.find('.itemTaxRate')).val();
-            var itemTaxPrice = parseFloat((totalItemTaxRate / 100) * (totalItemPrice));
-            $(el.find('.itemTaxPrice')).val(itemTaxPrice.toFixed(2));
-
-            $(el.find('.amount')).html((parseFloat(itemTaxPrice) + parseFloat(amount)).toFixed(2));
-
-            // Use the common calculation function
-            calculateTotals();
-        });
-
-        // Trigger calculations when document is ready
-        $(document).ready(function() {
-            // Initialize select2 for all select elements
-            if (typeof $.fn.select2 !== 'undefined') {
-                $('.select2').select2();
-            }
-
-            // Initialize customer details
-            if ($('#customer').length > 0 && $('#customer').val() !== '') {
-                $('#customer').trigger('change');
-            }
-
-            // First, set the product_id in items
-            const invoiceItems = {!! json_encode($invoice->items) !!};
-            if (invoiceItems.length > 0) {
-                // Make sure all products are properly selected in their dropdowns
-                setTimeout(function() {
-                    invoiceItems.forEach(function(item, index) {
-                        const tr = $('#sortable-table tbody tr').eq(index);
-                        if (tr.length) {
-                            $(tr).find('.item').val(item.product_id).trigger('change');
-                        }
-                    });
-                }, 300);
-            }
-
-            // Recalculate all values after a brief delay to ensure DOM is fully loaded
-            setTimeout(function() {
-                // Update summary calculations on page load
-                var totalItemPrice = 0;
-                var totalItemTaxPrice = 0;
-                var totalItemDiscountPrice = 0;
-                var subTotal = 0;
-
-                // Calculate subtotal from each line
-                $('.amount').each(function() {
-                    subTotal += parseFloat($(this).html()) || 0;
-                });
-
-                // Get totals from quantity and price
-                $('.quantity').each(function(index) {
-                    var quantity = parseFloat($(this).val()) || 0;
-                    var price = parseFloat($('.price').eq(index).val()) || 0;
-                    totalItemPrice += quantity * price;
-                });
-
-                // Get all tax amounts
-                $('.itemTaxPrice').each(function() {
-                    totalItemTaxPrice += parseFloat($(this).val()) || 0;
-                });
-
-                // Get all discount amounts
-                $('.discount').each(function() {
-                    totalItemDiscountPrice += parseFloat($(this).val()) || 0;
-                });
-
-                // Update summary displays
-                $('.subTotal').html(totalItemPrice.toFixed(2));
-                $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-                $('.totalDiscount').html(totalItemDiscountPrice.toFixed(2));
-                $('.totalAmount').html((parseFloat(totalItemPrice) - parseFloat(totalItemDiscountPrice) + parseFloat(totalItemTaxPrice)).toFixed(2));
-            }, 500);
-        });
-
-        $(document).on('click', '[data-repeater-create]', function() {
-            $('.item :selected').each(function() {
-                var id = $(this).val();
-                $(".item option[value=" + id + "]").prop("disabled", true);
-            });
-        })
-
-        $(document).on('click', '[data-repeater-delete]', function() {
-            // $('.delete_item').click(function () {
-            if (confirm('Are you sure you want to delete this element?')) {
-                var el = $(this).parent().parent();
-                var id = $(el.find('.id')).val();
-                var amount = $(el.find('.amount')).html();
-
-                $.ajax({
-                    url: '{{ route('invoice.product.destroy') }}',
-                    type: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': jQuery('#token').val()
-                    },
-                    data: {
-                        'id': id,
-                        'amount': amount,
-                    },
-                    cache: false,
-                    success: function(data) {
-
-                    },
-                });
-
-            }
-        });
-    </script>
-    <script>
-        $(document).on('click', '[data-repeater-delete]', function() {
-            $(".price").change();
-            $(".discount").change();
-        });
-    </script>
-@endpush
 
 @section('content')
-    {{--    @dd($invoice) --}}
+<style>
+    .select2 {
+        width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+        height: 38px !important;
+        border: 2px solid #3E3F4A !important;
+        border-radius: 6px !important;
+        background-color: #22242c !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        color: #808191 !important;
+        line-height: 38px !important;
+        padding-left: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 8px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow b {
+        border-color: #808191 transparent transparent transparent !important;
+    }
+
+    .select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+        border-color: transparent transparent #808191 transparent !important;
+    }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #3E3F4A !important;
+        color: #fff !important;
+    }
+
+    .select2-dropdown {
+        border: 2px solid #3E3F4A !important;
+        border-radius: 6px !important;
+        background-color: #22242c !important;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 2px solid #3E3F4A !important;
+        border-radius: 6px !important;
+        padding: 0.375rem 0.75rem !important;
+        background-color: #22242c !important;
+        color: #808191 !important;
+    }
+
+    .select2-container--default .select2-results__option {
+        padding: 0.375rem 0.75rem !important;
+        color: #808191 !important;
+    }
+
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #3E3F4A !important;
+        color: #fff !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__clear {
+        color: #808191 !important;
+        font-size: 1.2em !important;
+        margin-right: 20px !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #808191 !important;
+    }
+</style>
+
+<form action="{{ route('invoice.update', $invoice->id) }}" method="POST">
+    @csrf
+    @method('PUT')
     <div class="row">
-        {{ Form::model($invoice, ['route' => ['invoice.update', $invoice->id], 'method' => 'PUT', 'class' => 'w-100']) }}
-        <div class="col-12">
-            <input type="hidden" name="_token" id="token" value="{{ csrf_token() }}">
-            <div class="card">
-                <div class="card-body">
+        <div class="col-md-6">
+            <div class="card p-3">
+                <div class="form-group">
+                    <label for="customer_id">Customer</label>
+                    <div class="row d-flex">
+                        <div class="col-md-4 pe-0">
+                            <select name="type" class="form-control">
+                                <option value="sl-no">#SL No.</option>
+                                <option value="name" {{ old('type', 'name') == 'name' ? 'selected' : '' }}>Name</option>
+                                <option value="email">Email</option>
+                                <option value="contact">Phone</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <select class="form-control js-customer-select" id="customer_id" name="customer_id" required>
+                                <option value="">Select a customer</option>
+                                @foreach($customers as $id => $name)
+                                    <option value="{{ $id }}" {{ $invoice->customer_id == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group mb-0">
                     <div class="row">
-                                                <div class="col-md-6">                            <div class="form-group" id="customer-box">                                {{ Form::label('customer_id', __('Customer'), ['class' => 'form-label']) }}                                {{ Form::select('customer_id', $customers, null, ['class' => 'form-control select2', 'id' => 'customer', 'data-url' => route('invoice.customer'), 'required' => 'required']) }}                            </div>                            <div id="customer_detail" class="d-none">                            </div>                                                        <div class="row mt-3">                                <div class="col-md-6">                                    <div>                                        <label for="billing_address_line_1">Billing Address Line 1</label>                                        <input type="text" class="form-control mb-2" id="billing_address_line_1" name="billing_address_line_1" value="{{ $invoiceAddress->billing_address_line_1 ?? '' }}">                                    </div>                                    <div>                                        <label for="billing_address_line_2">Billing Address Line 2</label>                                        <input type="text" class="form-control mb-2" id="billing_address_line_2" name="billing_address_line_2" value="{{ $invoiceAddress->billing_address_line_2 ?? '' }}">                                    </div>                                    <div>                                        <label for="billing_city">Billing City</label>                                        <input type="text" class="form-control mb-2" id="billing_city" name="billing_city" value="{{ $invoiceAddress->billing_city ?? '' }}">                                    </div>                                    <div>                                        <label for="billing_state">Billing State</label>                                        <input type="text" class="form-control mb-2" id="billing_state" name="billing_state" value="{{ $invoiceAddress->billing_state ?? '' }}">                                    </div>                                    <div>                                        <label for="billing_zip_code">Billing Zip Code</label>                                        <input type="text" class="form-control" id="billing_zip_code" name="billing_zip_code" value="{{ $invoiceAddress->billing_zip_code ?? '' }}">                                    </div>                                </div>                                <div class="col-md-6">                                    <div>                                        <label for="shipping_address_line_1">Shipping Address Line 1</label>                                        <input type="text" class="form-control mb-2" id="shipping_address_line_1" name="shipping_address_line_1" value="{{ $invoiceAddress->shipping_address_line_1 ?? '' }}">                                    </div>                                    <div>                                        <label for="shipping_address_line_2">Shipping Address Line 2</label>                                        <input type="text" class="form-control mb-2" id="shipping_address_line_2" name="shipping_address_line_2" value="{{ $invoiceAddress->shipping_address_line_2 ?? '' }}">                                    </div>                                    <div>                                        <label for="shipping_city">Shipping City</label>                                        <input type="text" class="form-control mb-2" id="shipping_city" name="shipping_city" value="{{ $invoiceAddress->shipping_city ?? '' }}">                                    </div>                                    <div>                                        <label for="shipping_state">Shipping State</label>                                        <input type="text" class="form-control mb-2" id="shipping_state" name="shipping_state" value="{{ $invoiceAddress->shipping_state ?? '' }}">                                    </div>                                    <div>                                        <label for="shipping_zip_code">Shipping Zip Code</label>                                        <input type="text" class="form-control" id="shipping_zip_code" name="shipping_zip_code" value="{{ $invoiceAddress->shipping_zip_code ?? '' }}">                                    </div>                                </div>                            </div>                        </div>
                         <div class="col-md-6">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('issue_date', __('Issue Date'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            {{ Form::date('issue_date', null, ['class' => 'form-control', 'required' => 'required']) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('due_date', __('Due Date'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            {{ Form::date('due_date', null, ['class' => 'form-control', 'required' => 'required']) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('invoice_number', __('Invoice Number'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            <input type="text" class="form-control" value="{{ $invoice_number }}" readonly>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    {{ Form::label('category_id', __('Category'), ['class' => 'form-label']) }}
-                                    {{ Form::select('category_id', $category, null, ['class' => 'form-control select', 'required' => 'required']) }}
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('ref_number', __('Ref Number'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            <span><i class="ti ti-joint"></i></span>
-                                            {{ Form::text('ref_number', null, ['class' => 'form-control']) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        {{ Form::label('note', __('Add Note'), ['class' => 'form-label']) }}
-                                        <div class="form-icon-user">
-                                            <span><i class="ti ti-joint"></i></span>
-                                            {{ Form::textarea('note', null, ['class' => 'form-control summernote-simple']) }}
-                                        </div>
-                                    </div>
-                                </div>
-                                {{--                                <div class="col-md-6"> --}}
-                                {{--                                    <div class="form-check custom-checkbox mt-4"> --}}
-                                {{--                                        <input class="form-check-input" type="checkbox" name="discount_apply" id="discount_apply" {{$invoice->discount_apply==1?'checked':''}}> --}}
-                                {{--                                        <label class="form-check-label" for="discount_apply">{{__('Discount Apply')}}</label> --}}
-                                {{--                                    </div> --}}
-                                {{--                                </div> --}}
+                            <div>
+                                <label for="billing_address_line_1">Billing Address Line 1</label>
+                                <input type="text" class="form-control mb-2" id="billing_address_line_1" name="billing_address_line_1" value="{{ old('billing_address_line_1', $invoiceAddress->billing_address ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="billing_address_line_2">Billing Address Line 2</label>
+                                <input type="text" class="form-control mb-2" id="billing_address_line_2" name="billing_address_line_2" value="{{ old('billing_address_line_2', $invoiceAddress->billing_address_line_2 ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="billing_city">Billing City</label>
+                                <input type="text" class="form-control mb-2" id="billing_city" name="billing_city" value="{{ old('billing_city', $invoiceAddress->billing_city ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="billing_state">Billing State</label>
+                                <input type="text" class="form-control mb-2" id="billing_state" name="billing_state" value="{{ old('billing_state', $invoiceAddress->billing_state ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="billing_zip_code">Billing Zip Code</label>
+                                <input type="text" class="form-control" id="billing_zip_code" name="billing_zip_code" value="{{ old('billing_zip_code', $invoiceAddress->billing_zip ?? '') }}">
+                            </div>
+                        </div>
 
-                                {{--                                <div class="col-md-6"> --}}
-                                {{--                                    <div class="form-group"> --}}
-                                {{--                                        {{Form::label('sku',__('SKU')) }} --}}
-                                {{--                                        {!!Form::text('sku', null,array('class' => 'form-control','required'=>'required')) !!} --}}
-                                {{--                                    </div> --}}
-                                {{--                                </div> --}}
-                                @if (!$customFields->isEmpty())
-                                    <div class="col-md-6">
-                                        <div class="tab-pane fade show" id="tab-2" role="tabpanel">
-                                            @include('customFields.formBuilder')
-                                        </div>
-                                    </div>
-                                @endif
+                        <div class="col-md-6">
+                            <div>
+                                <label for="shipping_address_line_1">Shipping Address Line 1</label>
+                                <input type="text" class="form-control mb-2" id="shipping_address_line_1" name="shipping_address_line_1" value="{{ old('shipping_address_line_1', $invoiceAddress->shipping_address ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="shipping_address_line_2">Shipping Address Line 2</label>
+                                <input type="text" class="form-control mb-2" id="shipping_address_line_2" name="shipping_address_line_2" value="{{ old('shipping_address_line_2', $invoiceAddress->shipping_address_line_2 ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="shipping_city">Shipping City</label>
+                                <input type="text" class="form-control mb-2" id="shipping_city" name="shipping_city" value="{{ old('shipping_city', $invoiceAddress->shipping_city ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="shipping_state">Shipping State</label>
+                                <input type="text" class="form-control mb-2" id="shipping_state" name="shipping_state" value="{{ old('shipping_state', $invoiceAddress->shipping_state ?? '') }}">
+                            </div>
+                            <div>
+                                <label for="shipping_zip_code">Shipping Zip Code</label>
+                                <input type="text" class="form-control" id="shipping_zip_code" name="shipping_zip_code" value="{{ old('shipping_zip_code', $invoiceAddress->shipping_zip ?? '') }}">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-12">
-            <h5 class=" d-inline-block mb-4">{{ __('Product & Services') }}</h5>
-            <div class="card repeater" data-value='{!! json_encode($invoice->items) !!}'>
-                <div class="item-section py-2">
-                    <div class="row justify-content-between align-items-center">
-                        <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
-                            <div class="all-button-box me-2">
-                                <a href="#" data-repeater-create="" class="btn btn-primary" data-bs-toggle="modal"
-                                    data-target="#add-bank">
-                                    <i class="ti ti-plus"></i> {{ __('Add item') }}
-                                </a>
-                            </div>
-                        </div>
+        <div class="col-md-6">
+            <div class="card p-3">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="issueDate" class="form-label">Issue Date</label>
+                        <input type="date" class="form-control" id="issueDate" name="issue_date" value="{{ old('issue_date', $invoice->issue_date) }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="dueDate" class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="dueDate" name="due_date" value="{{ old('due_date', $invoice->due_date) }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                        <input type="text" class="form-control" id="invoiceNumber" value="{{ $invoice_number }}" readonly>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category_id">
+                            
+                            @foreach($category as $id => $name)
+                                <option value="{{ $id }}" @if($invoice->category_id == $id) selected @endif>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="invoice_category" class="form-label">Invoice Category</label>
+                        <select class="form-select" id="invoice_category" name="invoice_category_id">
+                            <option value="">Select Category</option>
+                            @foreach($invoiceCategories as $category)
+                                <option value="{{ $category->id }}" data-footer-note="{{ $category->footer_note }}" {{ $invoice->invoice_category_id == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="refNumber" class="form-label">Ref Number</label>
+                        <input type="text" class="form-control" id="refNumber" name="ref_number" value="{{ old('ref_number', $invoice->ref_number) }}" placeholder="Enter REF">
                     </div>
                 </div>
-                <div class="card-body table-border-style">
-                    <div class="table-responsive">
-                        <table class="table mb-0 table-custom-style" data-repeater-list="items" id="sortable-table">
-                            <thead>
-                                <tr>
-                                    <th>{{ __('Items') }}</th>
-                                    <th>{{ __('Quantity') }}</th>
-                                    <th>{{ __('Price') }} </th>
-                                    <th>{{ __('Discount') }}</th>
-                                    <th>{{ __('Tax') }}</th>
-                                    <th class="text-end">{{ __('Amount') }} </th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody class="ui-sortable" data-repeater-item>
-                                <tr>
-                                    {{ Form::hidden('id', null, ['class' => 'form-control id']) }}
-                                    <td width="25%" class="form-group pt-0">
-                                        {{ Form::select('item', $product_services, null, ['class' => 'form-control item select2', 'data-url' => route('invoice.product')]) }}
-                                    </td>
-                                    <td>
-                                        <div class="form-group price-input input-group search-form">
-                                            {{ Form::text('quantity', null, ['class' => 'form-control quantity', 'required' => 'required', 'placeholder' => __('Qty')]) }}
-                                            <span class="unit input-group-text bg-transparent"></span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="form-group price-input input-group search-form">
-                                            {{ Form::text('price', null, ['class' => 'form-control price', 'required' => 'required', 'placeholder' => __('Price')]) }}
-                                            <span class="input-group-text bg-transparent">{{ \Auth::user()->currencySymbol() }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="form-group price-input input-group search-form">
-                                            {{ Form::text('discount', null, ['class' => 'form-control discount', 'placeholder' => __('Discount')]) }}
-                                            <span class="input-group-text bg-transparent">{{ \Auth::user()->currencySymbol() }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="form-group">
-                                            <div class="input-group colorpickerinput">
-                                                <div class="taxes"></div>
-                                                {{ Form::hidden('tax', '', ['class' => 'form-control tax']) }}
-                                                {{ Form::hidden('itemTaxPrice', '', ['class' => 'form-control itemTaxPrice']) }}
-                                                {{ Form::hidden('itemTaxRate', '', ['class' => 'form-control itemTaxRate']) }}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-end amount">0.00</td>
-                                    <td>
-                                        <a href="#"
-                                            class="ti ti-trash text-white repeater-action-btn bg-danger ms-2 delete_item"
-                                            data-repeater-delete></a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2">
-                                        <div class="form-group">
-                                            {{ Form::textarea('description', null, ['class' => 'form-control pro_description', 'rows' => '2', 'placeholder' => __('Description')]) }}
-                                        </div>
-                                    </td>
-                                    <td colspan="5"></td>
-                                </tr>
-                                <tr>
-                                    <th colspan="1">Service Charge</th>
-                                    <th colspan="2">Employee</th>
-                                    <th colspan="4">
-                                        Description
-                                    </th>
-                                </tr>
-                                <tr>
-                                    <td colspan="1">
-                                        <input type="number" name="service_charge" id="service_charge" class="form-control" value="{{@$invoice->customerService->service_charge}}" min="0">
-                                    </td>
-                                    <td colspan="2">
-                                        <select name="employee_id" id="employee_id" class="form-control select2">
-                                            @foreach($employees as $id => $name)
-                                                <option value="{{ $id }}" {{ @$invoice->customerService->employee_id == $id ? 'selected' : '' }}>{{ $name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td colspan="4">
-                                        <textarea name="service_charge_description" id="service_charge_description" class="form-control" placeholder="Description">{{@$invoice->customerService->description}}</textarea>
-                                    </td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td><strong>{{ __('Sub Total') }} ({{ \Auth::user()->currencySymbol() }})</strong>
-                                    </td>
-                                    <td class="text-end subTotal">0.00</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td><strong>{{ __('Discount') }} ({{ \Auth::user()->currencySymbol() }})</strong></td>
-                                    <td class="text-end totalDiscount">0.00</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td></td>
-                                    <td><strong>{{ __('Tax') }} ({{ \Auth::user()->currencySymbol() }})</strong></td>
-                                    <td class="text-end totalTax">0.00</td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td>&nbsp;</td>
-                                    <td class="blue-text"><strong>{{ __('Total Amount') }}
-                                            ({{ \Auth::user()->currencySymbol() }})</strong></td>
-                                    <td class="text-end totalAmount blue-text">0.00</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                <div class="mb-3">
+                    <label for="note" class="form-label">Add Note</label>
+                    <textarea class="form-control" id="note" rows="3" name="note">{{ old('note', $invoice->note) }}</textarea>
                 </div>
             </div>
         </div>
-
-        <div class="card p-3">
-            <div class="row">
-                <div class="col-md-12">
-                    <h5>Footer Note</h5>
-                    <textarea id="editor" name="footer_note">
-                        {{ $invoice->footer_text }}
-                    </textarea>
-                </div>
-            </div>
-
-        </div>
-        <div class="modal-footer">
-            <input type="button" value="{{ __('Cancel') }}" onclick="location.href = '{{ route('invoice.index') }}';"
-                class="btn btn-light me-3">
-            <input type="submit" value="{{ __('Update') }}" class="btn  btn-primary">
-        </div>
-        {{ Form::close() }}
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
-    
-    <script>
-        // Initialize Jodit editor
-        const editor = Jodit.make('#editor', {
-            height: 400,
-            theme: 'default',
-            language: 'en',
+    <!-- Product & Services -->
+    <div class="card p-3">
+        <div class="d-flex justify-content-between mb-3">
+            <button type="button" class="btn btn-primary" id="addItemBtn">ADD ITEM</button>
+        </div>
+        <div class="table-responsive m-0 w-100">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ITEMS</th>
+                        <th>QUANTITY</th>
+                        <th>PRICE</th>
+                        <th>DISCOUNT</th>
+                        <th>TAX (%)</th>
+                        <th>AMOUNT AFTER DISCOUNT</th>
+                        <th>ACTION</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    @foreach($invoice->items as $index => $item)
+                    <tr>
+                        <td>
+                            <div class="form-group">
+                                <select class="form-control js-product-select" id="product_id_{{ $index }}" name="items[{{ $index }}][item]" required>
+                                    <option value="">Select a product</option>
+                                    @foreach($product_services as $id => $name)
+                                        <option value="{{ $id }}" {{ $item->item == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <textarea class="form-control mt-2" name="items[{{ $index }}][description]" placeholder="Description" rows="2">{{ $item->description }}</textarea>
+                        </td>
+                        <td><input name="items[{{ $index }}][quantity]" type="number" class="form-control" value="{{ $item->quantity }}"></td>
+                        <td><input name="items[{{ $index }}][price]" type="number" class="form-control" value="{{ $item->price }}"></td>
+                        <td><input name="items[{{ $index }}][discount]" type="number" class="form-control" value="{{ $item->discount }}"></td>
+                        <td><input name="items[{{ $index }}][tax]" type="number" class="form-control" value="{{ $item->tax }}"></td>
+                        <td>{{ number_format(($item->quantity * $item->price) - $item->discount + ($item->quantity * $item->price * ($item->tax / 100)), 2) }}</td>
+                        <td>
+                            <button type="button" class="btn btn-danger btn-sm remove-row" {{ $index == 0 ? 'disabled' : '' }}>
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Service Charge</th>
+                        <th>Employee</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <input type="number" name="service_charge" id="service_charge" class="form-control" min="0" value="{{ old('service_charge', $invoice->service_charge ?? 0) }}">
+                        </td>
+                        <td>
+                            <select name="employee_id" id="employee_id" class="form-control select2">
+                                <option value="">Select Employee</option>
+                                @foreach($employees as $id => $name)
+                                    <option value="{{ $id }}" {{ $invoice->employee_id == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td>
+                            <textarea name="service_charge_description" id="service_charge_description" class="form-control" placeholder="Description">{{ old('service_charge_description', $invoice->service_charge_description ?? '') }}</textarea>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Subtotal Calculation Table and Discount Option -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <!-- Space for any additional information -->
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-none border">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Paid Amount</label>
+                                                <select name="payment_method" id="payment_method" class="form-control">
+                                                    <option value="">Select Payment Method</option>
+                                                    @foreach($bank_accounts as $id => $name)
+                                                        <option value="{{ $id }}" {{ $invoice->payment_method == $id ? 'selected' : '' }}>{{ $name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Subtotal</td>
+                                        <td class="text-end" id="subtotal-amount">{{ number_format($invoice->getSubTotal(), 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Paid Amount</label>
+                                                <input type="number" name="paid_amount" id="paid_amount" class="form-control" value="{{ old('paid_amount', $invoice->paid_amount ?? 0) }}" min="0" step="0.01">
+                                            </div>
+                                        </td>
+                                        <td class="text-end" id="paid-amount-display">{{ number_format($invoice->paid_amount ?? 0, 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Payment Reference</label>
+                                                <input type="text" name="payment_reference" id="payment_reference" class="form-control" placeholder="Transaction ID" value="{{ old('payment_reference', $invoice->payment_reference ?? '') }}">
+                                            </div>
+                                        </td>
+                                        <td class="text-end">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">
+                                            <div class="d-flex align-items-center">
+                                                <label class="form-label me-2 mb-0">Discount</label>
+                                                <input type="number" name="discount_apply" id="discount_apply" class="form-control" value="{{ old('discount_apply', $invoice->discount_apply ?? 0) }}" min="0" step="0.01">
+                                            </div>
+                                        </td>
+                                        <td class="text-end" id="discount-amount">{{ number_format($invoice->discount_apply ?? 0, 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Tax</td>
+                                        <td class="text-end" id="tax-amount">{{ number_format($invoice->getTotalTax(), 2) }}</td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td class="fw-bold fs-5">Total Amount</td>
+                                        <td class="text-end fw-bold fs-5" id="total-amount">{{ number_format($invoice->getTotal(), 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="fw-bold">Due Amount</td>
+                                        <td class="text-end fw-bold text-danger" id="due-amount">{{ number_format($invoice->getDue(), 2) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        <div class="row">
+            <div class="col-md-12">
+                <h5>Footer Note</h5>
+                <textarea id="editor" name="footer_note" readonly>{!! $invoice->footer_text !!}</textarea>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mt-3">
+            <div>
+                <button type="button" class="btn btn-outline-secondary me-2">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Fields -->
+    @if($customFields)
+        <div class="card p-3 mt-3">
+            <h5>Custom Fields</h5>
+            @foreach($customFields as $field)
+                <div class="form-group">
+                    <label for="custom_field_{{ $field->id }}">{{ $field->name }}</label>
+                    <input type="text" name="custom_field[{{ $field->id }}]" id="custom_field_{{ $field->id }}" class="form-control" value="{{ $invoice->customField[$field->id] ?? '' }}">
+                </div>
+            @endforeach
+        </div>
+    @endif
+</form>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Jodit Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jodit/3.24.5/jodit.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Counter for dynamic product rows
+        let productRowCounter = {{ count($invoice->items) }};
+
+        // Function to calculate amount after discount for a row
+        function calculateAmount(row) {
+            const quantity = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
+            const price = parseFloat(row.find('input[name*="[price]"]').val()) || 0;
+            const discount = parseFloat(row.find('input[name*="[discount]"]').val()) || 0;
+            const tax = parseFloat(row.find('input[name*="[tax]"]').val()) || 0;
             
-            // Toolbar configuration
+            const subtotal = price * quantity;
+            const taxAmount = subtotal * (tax / 100);
+            const total = subtotal - discount + taxAmount;
+            row.find('td:last').prev().text(total.toFixed(2));
+            
+            updateSummaryTable();
+        }
+        
+        // Function to calculate invoice summary totals
+        function updateSummaryTable() {
+            let subtotal = 0;
+            let totalTax = 0;
+            let totalItemDiscount = 0;
+            
+            $('#productTableBody tr').each(function() {
+                const quantity = parseFloat($(this).find('input[name*="[quantity]"]').val()) || 0;
+                const price = parseFloat($(this).find('input[name*="[price]"]').val()) || 0;
+                const discount = parseFloat($(this).find('input[name*="[discount]"]').val()) || 0;
+                const tax = parseFloat($(this).find('input[name*="[tax]"]').val()) || 0;
+                
+                const rowSubtotal = price * quantity;
+                subtotal += rowSubtotal;
+                totalItemDiscount += discount;
+                totalTax += rowSubtotal * (tax / 100);
+            });
+            
+            const serviceCharge = parseFloat($('#service_charge').val()) || 0;
+            subtotal += serviceCharge;
+            
+            const additionalDiscount = parseFloat($('#discount_apply').val()) || 0;
+            const paidAmount = parseFloat($('#paid_amount').val()) || 0;
+            const totalDiscount = additionalDiscount;
+            
+            const totalAmount = subtotal - totalDiscount + totalTax;
+            const dueAmount = totalAmount - paidAmount;
+            
+            $('#subtotal-amount').text(subtotal.toFixed(2));
+            $('#discount-amount').text(totalDiscount.toFixed(2));
+            $('#tax-amount').text(totalTax.toFixed(2));
+            $('#total-amount').text(totalAmount.toFixed(2));
+            $('#paid-amount-display').text(paidAmount.toFixed(2));
+            $('#due-amount').text(dueAmount.toFixed(2));
+        }
+
+        // Add event listener for input changes
+        $('#discount_apply, #paid_amount, #service_charge').on('input', function() {
+            updateSummaryTable();
+        });
+
+        // Initialize Select2 for customer search
+        $('.js-customer-select').select2({
+            ajax: {
+                url: '{{ route("invoice.customers.search") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return {
+                        search: params.term,
+                        type: $('select[name="type"]').val()
+                    };
+                },
+                processResults: function(data) {
+                    const searchType = $('select[name="type"]').val();
+                    return {
+                        results: $.map(data, function(item) {
+                            let displayText = '';
+                            switch(searchType) {
+                                case 'sl-no':
+                                    displayText = item.name + ' (#' + item.customer_id + ')';
+                                    break;
+                                case 'email':
+                                    displayText = item.name + ' (' + item.email + ')';
+                                    break;
+                                case 'contact':
+                                    displayText = item.name + ' (' + item.contact + ')';
+                                    break;
+                                default:
+                                    displayText = item.name;
+                                    break;
+                            }
+                            return {
+                                id: item.id,
+                                text: displayText,
+                                customerData: item
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            placeholder: "Select a customer",
+            minimumInputLength: 2,
+            allowClear: true,
+            width: '100%',
+            theme: 'default'
+        }).on('select2:select', function(e) {
+            const customerData = e.params.data.customerData;
+            $('#billing_address_line_1').val(customerData.billing_address || '');
+            $('#billing_city').val(customerData.billing_city || '');
+            $('#billing_state').val(customerData.billing_state || '');
+            $('#billing_zip_code').val(customerData.billing_zip || '');
+            $('#shipping_address_line_1').val(customerData.billing_address || '');
+            $('#shipping_city').val(customerData.billing_city || '');
+            $('#shipping_state').val(customerData.billing_state || '');
+            $('#shipping_zip_code').val(customerData.billing_zip || '');
+        }).on('select2:clear', function() {
+            $('#billing_address_line_1, #billing_city, #billing_state, #billing_zip_code').val('');
+            $('#shipping_address_line_1, #shipping_city, #shipping_state, #shipping_zip_code').val('');
+        });
+
+        // Function to initialize Select2 for product dropdowns
+        function initializeProductSelect(element, index) {
+            $(element).select2({
+                ajax: {
+                    url: '{{ route("invoice.products.search") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: $.map(data, function(item) {
+                                return {
+                                    id: item.id,
+                                    text: item.name + ' (' + item.sku + ') - ' + item.sale_price + '৳'
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                placeholder: "Select a product",
+                minimumInputLength: 2,
+                allowClear: true,
+                width: '100%',
+                theme: 'default'
+            }).on('select2:select', function(e) {
+                const selectedData = e.params.data;
+                const row = $(this).closest('tr');
+                const priceField = row.find('input[name="items[' + index + '][price]"]');
+                const price = selectedData.text.match(/(\d+\.\d+|\d+)৳/);
+                if (price) {
+                    priceField.val(parseFloat(price[0].replace('৳', '')));
+                    calculateAmount(row);
+                }
+            });
+        }
+
+        // Initialize Select2 for existing product dropdowns
+        @foreach($invoice->items as $index => $item)
+            initializeProductSelect('#product_id_{{ $index }}', {{ $index }});
+        @endforeach
+
+        // Add event listeners for quantity, price, and discount changes
+        $(document).on('input', 'input[name*="[quantity]"], input[name*="[price]"], input[name*="[discount]"]', function() {
+            calculateAmount($(this).closest('tr'));
+        });
+
+        // Add new product row
+        $('#addItemBtn').on('click', function() {
+            const newRow = `
+                <tr>
+                    <td>
+                        <div class="form-group">
+                            <select class="form-control js-product-select" id="product_id_${productRowCounter}" name="items[${productRowCounter}][item]" required>
+                                <option value="">Select a product</option>
+                            </select>
+                        </div>
+                        <textarea class="form-control mt-2" name="items[${productRowCounter}][description]" placeholder="Description" rows="2"></textarea>
+                    </td>
+                    <td><input name="items[${productRowCounter}][quantity]" type="number" class="form-control" value="1"></td>
+                    <td><input name="items[${productRowCounter}][price]" type="number" class="form-control" value="0.00"></td>
+                    <td><input name="items[${productRowCounter}][discount]" type="number" class="form-control" value="0"></td>
+                    <td><input name="items[${productRowCounter}][tax]" type="number" class="form-control" value="0"></td>
+                    <td>0.00</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm remove-row">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            $('#productTableBody').append(newRow);
+            initializeProductSelect(`#product_id_${productRowCounter}`, productRowCounter);
+            productRowCounter++;
+            updateSummaryTable();
+        });
+
+        // Handle row removal
+        $(document).on('click', '.remove-row', function() {
+            const rowCount = $('#productTableBody tr').length;
+            if (rowCount > 1) {
+                $(this).closest('tr').remove();
+                productRowCounter--;
+                updateSummaryTable();
+            }
+        });
+
+        // Calculate initial amounts
+        $('#productTableBody tr').each(function() {
+            calculateAmount($(this));
+        });
+        
+        // Initialize summary table
+        updateSummaryTable();
+
+        // Handle invoice category selection change
+        $('#invoice_category').on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            const footerNote = selectedOption.data('footer-note');
+            editor.value = footerNote || '';
+        });
+
+        // Initialize Jodit editor
+        const editor = new Jodit('#editor', {
+            height: 300,
+            toolbar: true,
             buttons: [
                 'source', '|',
                 'bold', 'italic', 'underline', 'strikethrough', '|',
-                'superscript', 'subscript', '|',
-                'ul', 'ol', '|',
-                'outdent', 'indent', '|',
                 'font', 'fontsize', 'brush', 'paragraph', '|',
-                'image', 'video', 'table', 'link', '|',
-                'align', 'undo', 'redo', '|',
+                'align', '|',
+                'ul', 'ol', '|',
+                'table', 'link', '|',
+                'undo', 'redo', '|',
                 'hr', 'eraser', 'copyformat', '|',
-                'fullsize', 'selectall', 'print'
+                'symbol', 'fullsize', 'print', 'about'
             ],
-            
-            // Editor configuration
             uploader: {
-                insertImageAsBase64URI: true // For demo purposes
+                insertImageAsBase64URI: true
             },
-            
-            // Disable some features for demo
-            filebrowser: {
-                ajax: {
-                    url: '#' // Disabled for demo
-                }
-            },
-            
-            // Image resize
-            image: {
-                openOnDblClick: true,
-                editSrc: false,
-                useImageEditor: true,
-                editTitle: true,
-                editAlt: true,
-                editLink: true,
-                editSize: true,
-                editMargins: true,
-                editClass: true,
-                editStyle: true,
-                editId: true,
-                editAlign: true,
-                showPreview: true,
-                selectImageAfterClose: true
-            },
-            
-            // Events
-            events: {
-                change: function(value) {
-                    console.log('Content changed:', value);
-                }
-            }
+            removeButtons: ['image'],
+            showCharsCounter: true,
+            showWordsCounter: true,
+            showXPathInStatusbar: false
         });
-        
-        // Helper functions
-        function getContent() {
-            const content = editor.getEditorValue();
-            document.getElementById('output-content').innerHTML = 
-                '<strong>HTML Content:</strong><pre>' + escapeHtml(content) + '</pre>';
-        }
-        
-        function getPlainText() {
-            const plainText = editor.getEditorText();
-            document.getElementById('output-content').innerHTML = 
-                '<strong>Plain Text:</strong><pre>' + escapeHtml(plainText) + '</pre>';
-        }
-        
-        function setContent() {
-            const sampleContent = `
-                <h2>Sample Content</h2>
-                <p>This is <strong>sample content</strong> with various formatting:</p>
-                <blockquote>
-                    <p>"This is a blockquote example."</p>
-                </blockquote>
-                <table border="1" style="border-collapse: collapse; width: 100%;">
-                    <tr>
-                        <th>Column 1</th>
-                        <th>Column 2</th>
-                    </tr>
-                    <tr>
-                        <td>Data 1</td>
-                        <td>Data 2</td>
-                    </tr>
-                </table>
-                <p><a href="#" target="_blank">This is a link</a></p>
-            `;
-            editor.setEditorValue(sampleContent);
-        }
-        
-        function clearEditor() {
-            editor.setEditorValue('');
-            document.getElementById('output-content').innerHTML = 'Editor cleared!';
-        }
-        
-        let isReadOnly = false;
-        function toggleReadOnly() {
-            isReadOnly = !isReadOnly;
-            editor.setReadOnly(isReadOnly);
-            document.getElementById('output-content').innerHTML = 
-                'Editor is now: ' + (isReadOnly ? 'Read-Only' : 'Editable');
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // Auto-update output on editor change (optional)
-        editor.events.on('change', function() {
-            // Uncomment the line below for real-time HTML output
-            // getContent();
-        });
-    </script>
+
+        // Set initial footer note
+        editor.value = '{{ $invoice->footer_note ?? '' }}';
+    });
+</script>
 @endsection

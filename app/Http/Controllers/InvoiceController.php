@@ -11,6 +11,7 @@ use App\Models\CustomField;
 use App\Models\Employee;
 use App\Models\Invoice;
 use App\Models\InvoiceBankTransfer;
+use App\Models\InvoiceCategory;
 use App\Models\InvoicePayment;
 use App\Models\InvoiceProduct;
 use App\Models\Products;
@@ -32,9 +33,9 @@ use Illuminate\Support\Facades\Schema;
 
 class InvoiceController extends Controller
 {
-    public function __construct()
-    {
-    }
+    // public function __construct()
+    // {
+    // }
 
     public function index(Request $request)
     {
@@ -155,13 +156,14 @@ class InvoiceController extends Controller
             $customers->prepend('Select Customer', '');
             $category = ProductServiceCategory::where('type', 'income')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
+            $invoiceCategories = InvoiceCategory::all();
             $product_services = ProductService::get()->pluck('name', 'id');
             $product_services->prepend('--', '');
             $employees = Employee::get()->pluck('name', 'id');
             $employees->prepend('Select Employee', '');
             $bank_accounts = BankAccount::get()->pluck('bank_name', 'id');
 
-            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId', 'employees','bank_accounts'));
+            return view('invoice.create', compact('customers', 'invoice_number', 'product_services', 'category', 'customFields', 'customerId', 'employees','bank_accounts', 'invoiceCategories'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -353,7 +355,7 @@ class InvoiceController extends Controller
     {
         if (\Auth::user()->can('edit invoice')) {
             $id = Crypt::decrypt($ids);
-            $invoice = Invoice::find($id);
+            $invoice = Invoice::where('id', $id)->with('items')->first();
             $invoiceAddress = \App\Models\InvoiceAddress::where('invoice_id', $invoice->id)->first();
 
             $invoice_number = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
@@ -366,8 +368,11 @@ class InvoiceController extends Controller
             $customFields = CustomField::where('module', '=', 'invoice')->get();
             $employees = Employee::get()->pluck('name', 'id');
             $employees->prepend('Select Employee', '');
+            $bank_accounts = BankAccount::get()->pluck('bank_name', 'id');
+            $invoiceCategories = InvoiceCategory::all();
+            
 
-            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields', 'invoiceAddress', 'employees'));
+            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields', 'invoiceAddress', 'employees', 'bank_accounts', 'invoiceCategories'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -1396,4 +1401,50 @@ class InvoiceController extends Controller
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
+
+
+    public function invoiceCategory()
+    {
+        $invoiceCategories = InvoiceCategory::all();
+        return view('invoice.invoice_category', compact('invoiceCategories'));
+    }
+
+    public function invoiceCategoryCreate()
+    {
+        return view('invoice.invoice_create_category');
+    }
+
+    public function invoiceCategoryStore(Request $request)
+    {
+        $invoiceCategory = new InvoiceCategory();
+        $invoiceCategory->name = $request->name;
+        $invoiceCategory->footer_note = $request->footer_note;
+        $invoiceCategory->save();
+        return redirect()->back()->with('success', __('Invoice Category created successfully.'));
+    }
+
+    public function invoiceCategoryEdit($id)
+    {
+        $invoiceCategory = InvoiceCategory::find($id);
+        return view('invoice.invoice_edit_category', compact('invoiceCategory'));
+    }
+
+    public function invoiceCategoryUpdate(Request $request, $id)
+    {
+        $invoiceCategory = InvoiceCategory::find($id);
+        $invoiceCategory->name = $request->name;
+        $invoiceCategory->footer_note = $request->footer_note;
+        $invoiceCategory->save();
+        return redirect()->back()->with('success', __('Invoice Category updated successfully.'));
+    }
+
+    public function invoiceCategoryDestroy($id)
+    {
+        $invoiceCategory = InvoiceCategory::find($id);
+        $invoiceCategory->delete();
+        return redirect()->back()->with('success', __('Invoice Category deleted successfully.'));
+    }
+    
+    
+    
 }

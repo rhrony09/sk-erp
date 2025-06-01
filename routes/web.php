@@ -481,6 +481,12 @@ Route::group(
         Route::get('invoice/create/{cid}', [InvoiceController::class, 'create'])->name('invoice.create');
         Route::get('invoice/customers/search', [InvoiceController::class, 'searchCustomers'])->name('invoice.customers.search');
         Route::get('invoice/products/search', [InvoiceController::class, 'searchProducts'])->name('invoice.products.search');
+        Route::get('invoice/category/list', [InvoiceController::class, 'invoiceCategory'])->name('invoice.category');
+        Route::get('invoice/category/create', [InvoiceController::class, 'invoiceCategoryCreate'])->name('invoice.category.create');
+        Route::post('invoice/category/store', [InvoiceController::class, 'invoiceCategoryStore'])->name('invoice.category.store');
+        Route::get('invoice/category/edit/{id}', [InvoiceController::class, 'invoiceCategoryEdit'])->name('invoice.category.edit');
+        Route::put('invoice/category/update/{id}', [InvoiceController::class, 'invoiceCategoryUpdate'])->name('invoice.category.update');
+        Route::delete('invoice/category/destroy/{id}', [InvoiceController::class, 'invoiceCategoryDestroy'])->name('invoice.category.destroy');
     }
 );
 

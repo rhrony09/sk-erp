@@ -186,6 +186,15 @@
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
+                        <label for="invoice_category" class="form-label">Invoice Category</label>
+                        <select class="form-select" id="invoice_category" name="category_id">
+                            <option value="">Select Category</option>
+                            @foreach($invoiceCategories as $category)
+                                <option value="{{ $category->id }}" data-footer-note="{{ $category->footer_note }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
                         <label for="refNumber" class="form-label">Ref Number</label>
                         <input type="text" class="form-control" id="refNumber" name="ref_number" placeholder="Enter REF">
                     </div>
@@ -353,15 +362,8 @@
         <div class="row">
             <div class="col-md-12">
                 <h5>Footer Note</h5>
-                <textarea id="editor" name="footer_note">
-                    <b style="color: #22242c;">বিশেষ দ্রষ্টব্য: সকল যাতায়াত খরচ কামার বহন করবে ।</b>
-                    <p>- Payment Method : Cash</p>
-                    <ul>
-                        <li>১/এস. কে. কর্পো রের্পো শন সর্বো র্বো তিন কর্ম দির্ম বসের মধ্যে গৃহী গৃ ত সার্ভিসের্ভি র সেবা দান করে থাকে। (ঢাকা সিটির মধ্যে)</li>
-                        <li>২/ ওয়াটার পিউরিফায়ার সার্ভিসের্ভি র ক্ষেত্রে কোন পার্টস গ্যারান্টির আওতাভু নয়।</li>
-                    </ul>
-                    <b>সার্ভিসর্ভি সংক্রা যেকোনো অভিযোগ ধুমা (০১৯৫৮৩৯৪৭৫৭) নরে যোগাযোগের মাধ্যমেই গৃহীত হবে। উ নর
-                        ব্যতীত অন্য কোনো নরে যোগাযোগ করার ফলে কাঙ্ক্ষিত সার্ভিসর্ভি দানে বিল হলে, কোম্পানি দায়ী থাকবে না।</b>
+                <textarea id="editor" name="footer_note" readonly>
+                    
                 </textarea>
             </div>
         </div>
@@ -627,6 +629,42 @@
         
         // Initialize summary table on page load
         updateSummaryTable();
+
+        // Handle invoice category selection change
+        $('#invoice_category').on('change', function() {
+            const selectedOption = $(this).find('option:selected');
+            const footerNote = selectedOption.data('footer-note');
+            
+            if (footerNote) {
+                editor.value = footerNote;
+            } else {
+                editor.value = '';
+            }
+        });
+
+        // Initialize Jodit editor
+        const editor = new Jodit('#editor', {
+            height: 300,
+            toolbar: true,
+            buttons: [
+                'source', '|',
+                'bold', 'italic', 'underline', 'strikethrough', '|',
+                'font', 'fontsize', 'brush', 'paragraph', '|',
+                'align', '|',
+                'ul', 'ol', '|',
+                'table', 'link', '|',
+                'undo', 'redo', '|',
+                'hr', 'eraser', 'copyformat', '|',
+                'symbol', 'fullsize', 'print', 'about'
+            ],
+            uploader: {
+                insertImageAsBase64URI: true
+            },
+            removeButtons: ['image'],
+            showCharsCounter: true,
+            showWordsCounter: true,
+            showXPathInStatusbar: false
+        });
     });
 </script>
 

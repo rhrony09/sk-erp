@@ -834,6 +834,13 @@
                                                 <a class="dash-link"
                                                     href="{{ route('invoice.index') }}">{{ __('Invoice') }}</a>
                                             </li>
+                                            @if (Gate::check('manage invoice category'))
+                                            <li
+                                                class="dash-item {{ Request::route()->getName() == 'invoice.category' || Request::route()->getName() == 'invoice.create' || Request::route()->getName() == 'invoice.edit' || Request::route()->getName() == 'invoice.show' ? ' active' : '' }}">
+                                                <a class="dash-link"
+                                                    href="{{ route('invoice.category') }}">{{ __('Invoice Category') }}</a>
+                                            </li>
+                                            @endif
                                             <li
                                                 class="dash-item {{ Request::route()->getName() == 'revenue.index' || Request::route()->getName() == 'revenue.create' || Request::route()->getName() == 'revenue.edit' ? ' active' : '' }}">
                                                 <a class="dash-link"

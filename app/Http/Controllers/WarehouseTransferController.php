@@ -41,8 +41,12 @@ class WarehouseTransferController extends Controller
                 $request->all(), [
                     'from_warehouse' => 'required',
                     'to_warehouse' => 'required',
-                    'product_id' => 'required',
-                    'quantity' => 'required',
+                    'product_id' => 'required|array',
+                    'product_id.*' => 'required',
+                    'quantity' => 'required|array',
+                    'quantity.*' => 'required|numeric|min:1',
+                    'date' => 'required|array',
+                    'date.*' => 'required|date',
                 ]
             );
             if($validator->fails())
@@ -51,33 +55,42 @@ class WarehouseTransferController extends Controller
                 return redirect()->back()->with('error', $messages->first());
             }
 
-            $fromWarehouse = WarehouseProduct::where('warehouse_id', $request->from_warehouse)
-                            ->where('product_id', $request->product_id)
-                            ->sum('quantity');
-            $product = ProductService::where('id', $request->product_id)
-                            ->first();
+            $product_ids = $request->product_id;
+            $quantities = $request->quantity;
+            $dates = $request->date;
 
-            $availableQuantity = $product->quantity - $fromWarehouse;
+            foreach ($product_ids as $index => $product_id) {
+                $quantity = $quantities[$index];
+                $date = $dates[$index];
 
-            if($request->quantity <= $availableQuantity)
-            {
-                $warehouse_transfer                  = new WarehouseTransfer();
-                $warehouse_transfer->from_warehouse  = $request->from_warehouse;
-                $warehouse_transfer->to_warehouse    = $request->to_warehouse;
-                $warehouse_transfer->product_id      = $request->product_id;
-                $warehouse_transfer->quantity        = $request->quantity;
-                $warehouse_transfer->date            = $request->date;
-                $warehouse_transfer->created_by      = \Auth::user()->creatorId();
-                $warehouse_transfer->save();
+                $fromWarehouse = WarehouseProduct::where('warehouse_id', $request->from_warehouse)
+                                ->where('product_id', $product_id)
+                                ->sum('quantity');
+                $product = ProductService::where('id', $product_id)
+                                ->first();
+
+                $availableQuantity = $product->quantity - $fromWarehouse;
+
+                if($quantity <= $availableQuantity)
+                {
+                    $warehouse_transfer                  = new WarehouseTransfer();
+                    $warehouse_transfer->from_warehouse  = $request->from_warehouse;
+                    $warehouse_transfer->to_warehouse    = $request->to_warehouse;
+                    $warehouse_transfer->product_id      = $product_id;
+                    $warehouse_transfer->quantity        = $quantity;
+                    $warehouse_transfer->date            = $date;
+                    $warehouse_transfer->created_by      = \Auth::user()->creatorId();
+                    $warehouse_transfer->save();
+
+                    Utility::warehouse_transfer_qty($request->from_warehouse, $request->to_warehouse, $product_id, $quantity);
+                }
+                else
+                {
+                    return redirect()->route('warehouse-transfer.index')->with('error', __('Product out of stock for one or more items!'));
+                }
             }
-            else
-            {
-                return redirect()->route('warehouse-transfer.index')->with('error', __('Product out of stock!.'));
-            }
 
-            Utility::warehouse_transfer_qty($request->from_warehouse,$request->to_warehouse,$request->product_id,$request->quantity);
-
-            return redirect()->route('warehouse-transfer.index')->with('success', __('Warehouse Transfer successfully created.'));
+            return redirect()->route('warehouse-transfer.index')->with('success', __('Warehouse Transfer(s) successfully created.'));
         }
         else
         {

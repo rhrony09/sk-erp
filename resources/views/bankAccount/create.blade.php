@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'bank-account')) }}
+{{ Form::open(array('route' => 'bank-account.store')) }}
 <div class="modal-body">
     <div class="row">
         <div class="form-group col-md-6">

@@ -5,6 +5,7 @@
 <script src="{{asset('assets/js-ecom/plugins.js')}}"></script>
 <script src="{{asset('assets/js-ecom/ajax-mail.js')}}"></script>
 <script src="{{asset('assets/js-ecom/main.js')}}"></script>
+
 </body>
 
 <!-- Mirrored from htmldemo.net/sinrato/sinrato/index.html by HTTrack Website Copier/3.x [XR&CO'2014], Sat, 01 Mar 2025 06:32:40 GMT -->

@@ -1787,3 +1787,5 @@ Route::prefix('blogs')->name('blogs.')->middleware(['auth', 'XSS', 'revalidate']
     Route::put('/{id}', [App\Http\Controllers\Ecommerce\BlogController::class, 'update'])->name('update');
     Route::delete('/{id}', [App\Http\Controllers\Ecommerce\BlogController::class, 'destroy'])->name('destroy');
 });
+
+Route::get('chart-of-account/get-accounts-by-type/{type}', [App\Http\Controllers\ChartOfAccountController::class, 'getAccountsByType'])->name('chart-of-account.get-accounts-by-type');

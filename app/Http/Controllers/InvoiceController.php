@@ -1326,6 +1326,7 @@ class InvoiceController extends Controller
 
     public function searchCustomers(Request $request)
     {
+        \Log::info('searchCustomers', $request->all());
         $search = $request->get('search');
         $type = $request->get('type', 'name'); // Default to name if type is not provided
         

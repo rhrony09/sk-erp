@@ -69,7 +69,7 @@ class PurchaseController extends Controller
     {
         if(\Auth::user()->can('create purchase'))
         {
-            $customFields = CustomField::where('module', '=', 'purchase')->get();
+            $customFields = CustomField::where('module', 'purchase')->get();
             $category     = ProductServiceCategory::where('type', 'expense')->get()->pluck('name', 'id');
             $category->prepend('Select Category', '');
 
@@ -172,7 +172,7 @@ class PurchaseController extends Controller
                         $warehouseProduct->product_id = $products[$i]['item'];
                         $warehouseProduct->warehouse_id = $request->warehouse_id;
                         $warehouseProduct->created_by = $userId;
-                        $existing->quantity = $products[$i]['quantity'];
+                        $warehouseProduct->quantity = $products[$i]['quantity'];
                         $warehouseProduct->save();
                     }
                 }

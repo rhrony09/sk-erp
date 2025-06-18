@@ -47,7 +47,7 @@ class LeadController extends Controller
         {
             if(\Auth::user()->default_pipeline)
             {
-                $pipeline = Pipeline::where('id', '=', \Auth::user()->default_pipeline)->first();
+                $pipeline = Pipeline::with('leadStages')->where('id', '=', \Auth::user()->default_pipeline)->first();
                 if(!$pipeline)
                 {
                     $pipeline = Pipeline::first();
@@ -55,7 +55,7 @@ class LeadController extends Controller
             }
             else
             {
-                $pipeline = Pipeline::first();
+                $pipeline = Pipeline::with('leadStages')->first();
             }
 
             $pipelines = Pipeline::get()->pluck('name', 'id');
@@ -150,15 +150,15 @@ class LeadController extends Controller
             // Default Field Value
             if($usr->default_pipeline)
             {
-                $pipeline = Pipeline::where('created_by', '=', $usr->creatorId())->where('id', '=', $usr->default_pipeline)->first();
+                $pipeline = Pipeline::where('id', '=', $usr->default_pipeline)->first();
                 if(!$pipeline)
                 {
-                    $pipeline = Pipeline::where('created_by', '=', $usr->creatorId())->first();
+                    $pipeline = Pipeline::first();
                 }
             }
             else
             {
-                $pipeline = Pipeline::where('created_by', '=', $usr->creatorId())->first();
+                $pipeline = Pipeline::first();
             }
 
             $stage = LeadStage::where('pipeline_id', '=', $pipeline->id)->first();

@@ -68,7 +68,9 @@ class ChartOfAccountController extends Controller
             ];
                $account_type =  array_merge($selectAcc, $account_type);
 
-        return view('chartOfAccount.create', compact('account_type'));
+        $accounts = ChartOfAccount::all();
+
+        return view('chartOfAccount.create', compact('account_type', 'accounts'));
     }
 
 
@@ -80,7 +82,7 @@ class ChartOfAccountController extends Controller
             $validator = \Validator::make(
                 $request->all(), [
                                    'name' => 'required',
-                                   'sub_type' => 'required',
+                                   'sub_type' => 'required'
                                ]
             );
             if($validator->fails())
@@ -93,15 +95,19 @@ class ChartOfAccountController extends Controller
             $type = ChartOfAccountSubType::where('id',$request->sub_type)->first();
             $account = ChartOfAccount::where('id',$request->parent)->first();
 
-            $existingparentAccount = ChartOfAccountParent::where('name',$account->name)->where('created_by',\Auth::user()->creatorId())->first();
+            // if(!$account) {
+            //     return redirect()->back()->with('error', __('Parent account not found.'));
+            // }
+            
 
-            if ($existingparentAccount) {
+            if ($account) {
+                $existingparentAccount = ChartOfAccountParent::where('name',$account->name)->first();
                 $parentAccount = $existingparentAccount;
             } else {
                 $parentAccount              = new ChartOfAccountParent();
             }
 
-            $parentAccount->name        = $account->name;
+            $parentAccount->name        = $request->name;
             $parentAccount->sub_type    = $request->sub_type;
             $parentAccount->type        = $type->type;
             $parentAccount->account      = $request->parent;
@@ -255,5 +261,15 @@ class ChartOfAccountController extends Controller
         $types->prepend('Select an account', 0);
 
         return response()->json($types);
+    }
+
+    public function getAccountsByType($type)
+    {
+        $accounts = ChartOfAccount::where('type', $type)
+            ->where('created_by', \Auth::user()->creatorId())
+            ->get(['id', 'name']);
+            \Log::info($accounts);
+            
+        return response()->json($accounts);
     }
 }

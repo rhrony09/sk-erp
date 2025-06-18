@@ -270,13 +270,18 @@ class ProductServiceController extends Controller
 
                 $productService->save();
 
-                foreach ($request->attributeValues as $value) {
-                    $productAttribute = new ProductAttribute();
-                    $productAttribute->product_id = $productService->id;
-                    $productAttribute->attribute_value_id = $value;
-
-                    $productAttribute->save();
+                // Only save attributes if they are provided and not empty
+                if ($request->has('attributeValues') && !empty(array_filter($request->attributeValues))) {
+                    foreach ($request->attributeValues as $value) {
+                        if (!empty($value)) {
+                            $productAttribute = new ProductAttribute();
+                            $productAttribute->product_id = $productService->id;
+                            $productAttribute->attribute_value_id = $value;
+                            $productAttribute->save();
+                        }
+                    }
                 }
+
                 CustomField::saveData($productService, $request->customField);
 
                 return redirect()->route('productservice.index')->with('success', __('Product successfully created.'));
@@ -416,12 +421,16 @@ class ProductServiceController extends Controller
 
                 ProductAttribute::where('product_id', $id)->delete();
 
-                foreach ($request->attributeValues as $value) {
-                    $productAttribute = new ProductAttribute();
-                    $productAttribute->product_id = $productService->id;
-                    $productAttribute->attribute_value_id = $value;
-
-                    $productAttribute->save();
+                // Only save attributes if they are provided and not empty
+                if ($request->has('attributeValues') && !empty(array_filter($request->attributeValues))) {
+                    foreach ($request->attributeValues as $value) {
+                        if (!empty($value)) {
+                            $productAttribute = new ProductAttribute();
+                            $productAttribute->product_id = $productService->id;
+                            $productAttribute->attribute_value_id = $value;
+                            $productAttribute->save();
+                        }
+                    }
                 }
 
                 CustomField::saveData($productService, $request->customField);

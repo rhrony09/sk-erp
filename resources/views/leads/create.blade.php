@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'leads')) }}
+{{ Form::open(array('route' => 'leads.store')) }}
 <div class="modal-body">
     {{-- start for ai module--}}
     @php

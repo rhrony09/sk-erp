@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'chart-of-account')) }}
+{{ Form::open(array('route' => 'chart-of-account.store')) }}
 <div class="modal-body">
     {{-- start for ai module--}}
     @php
@@ -38,7 +38,7 @@
             </div>
         </div>
 
-        <div class="col-md-4 mt-4 acc_check d-none">
+        <div class="col-md-4 mt-4 acc_check">
             <div class="form-check">
                 <input type="checkbox" class="form-check-input" id="account">
                 <label class="form-check-label" for="account">{{__('Make this a sub-account')}}</label>
@@ -48,6 +48,10 @@
         <div class="form-group col-md-6 acc_type d-none">
             {{ Form::label('parent', __('Parent Account'), ['class' => 'form-label']) }}
             <select class="form-control select" name="parent" id="parent">
+                <option value="">{{__('Select Account')}}</option>
+                @foreach($accounts as $account)
+                    <option value="{{$account->id}}">{{$account->name}}</option>
+                @endforeach
             </select>
         </div>
 
@@ -63,3 +67,38 @@
     <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
 </div>
 {{ Form::close() }}
+
+@push('script-page')
+<script>
+    $(document).ready(function() {
+        // Handle sub-account checkbox
+        $('#account').on('change', function() {
+            if($(this).is(':checked')) {
+                $('.acc_type').removeClass('d-none');
+            } else {
+                $('.acc_type').addClass('d-none');
+            }
+        });
+
+        // Handle account type change
+        $('select[name="sub_type"]').on('change', function() {
+            var type = $(this).val();
+            if(type) {
+                $.ajax({
+                    url: "{{ route('chart-of-account.get-accounts-by-type', '') }}/" + type,
+                    type: "GET",
+                    dataType: "json",
+                    success: function(data) {
+                        var parentSelect = $('select[name="parent"]');
+                        parentSelect.empty();
+                        parentSelect.append('<option value="">{{__("Select Account")}}</option>');
+                        $.each(data, function(key, value) {
+                            parentSelect.append('<option value="' + value.id + '">' + value.name + '</option>');
+                        });
+                    }
+                });
+            }
+        });
+    });
+</script>
+@endpush
